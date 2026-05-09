@@ -15,7 +15,7 @@ import Header from '../../components/Header';
 import KisanSlider from '../../components/KisanSlider';
 import { useRouter } from 'expo-router';
 import { mandiAPI } from '../../services/api';
-import { fetchMandiPrices, getDistricts } from '../../services/mandiApi';
+import { fetchMandiPrices, getDistricts, FALLBACK } from '../../services/mandiApi';
 import { loadNotifications } from '../../services/notificationService';
 
 // ── MandiPriceStrip ───────────────────────────────────────────────────────────
@@ -37,9 +37,19 @@ function MandiPriceStrip({ onPress }: { onPress: () => void }) {
         if (!seen.has(key)) { seen.add(key); unique.push(r); }
         if (unique.length >= 8) break;
       }
-      setItems(unique);
+      // If API returned no data, use fallback
+      if (unique.length === 0) {
+        const fallbackItems = FALLBACK.slice(0, 8) as MandiItem[];
+        setItems(fallbackItems);
+      } else {
+        setItems(unique);
+      }
       setUpdatedAt(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
-    } catch { /* keep empty — strip won't show */ }
+    } catch {
+      // On error, always show fallback data so strip is visible
+      setItems(FALLBACK.slice(0, 8) as MandiItem[]);
+      setUpdatedAt(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+    }
     finally { setLoading(false); }
   }, []);
 

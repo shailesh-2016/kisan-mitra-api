@@ -1,17 +1,17 @@
-// ── Data.gov.in Mandi Price API ───────────────────────────────────────────────
-const API_KEY     = '579b464db66ec23bdd000001052c14f0ffe34a0078f211bcb66705d8';
-const RESOURCE_ID = '9ef84268-d588-465a-a308-a864a43d0070';
-const BASE        = `https://api.data.gov.in/resource/${RESOURCE_ID}`;
-const TTL         = 60 * 60 * 1000; // 60 min cache
+// ── Mandi API — fetches from our own backend (Render) ────────────────────────
+// Backend proxies data.gov.in so CORS and API key issues are avoided.
 
-const _cache     = {};
-const _geoCache  = {}; // district/market → { lat, lng }
+const BACKEND_URL = 'https://kisan-mitra-api-8ski.onrender.com';
+const TTL         = 60 * 60 * 1000; // 60 min client-side cache
+
+const _cache    = {};
+const _geoCache = {};
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PART 4: Haversine distance formula (km)
+// Haversine distance (km)
 // ─────────────────────────────────────────────────────────────────────────────
 export function haversineDistance(lat1, lon1, lat2, lon2) {
-  const R    = 6371; // Earth radius km
+  const R    = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -30,7 +30,7 @@ export function formatDistance(km) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Geocode a place name → { lat, lng } via Nominatim (cached)
+// Geocode via Nominatim (cached)
 // ─────────────────────────────────────────────────────────────────────────────
 async function geocodePlace(query) {
   const key = query.toLowerCase().trim();
@@ -48,12 +48,9 @@ async function geocodePlace(query) {
   return null;
 }
 
-// Geocode a mandi market name — tries "Market, District, State, India"
-// then falls back to "District, State, India"
 export async function geocodeMandi(market, district, state) {
   const key = `${market}|${district}|${state}`.toLowerCase();
   if (_geoCache[key]) return _geoCache[key];
-
   const queries = [
     `${market}, ${district}, ${state}, India`,
     `${district}, ${state}, India`,
@@ -61,10 +58,7 @@ export async function geocodeMandi(market, district, state) {
   ];
   for (const q of queries) {
     const coords = await geocodePlace(q);
-    if (coords) {
-      _geoCache[key] = coords;
-      return coords;
-    }
+    if (coords) { _geoCache[key] = coords; return coords; }
   }
   return null;
 }
@@ -99,172 +93,107 @@ export function getCategory(name) {
   return 'vegetables';
 }
 
-function mapRecord(r) {
-  const modal = parseFloat(r.modal_price || r.Modal_Price || 0);
-  return {
-    commodity:   (r.commodity   || r.Commodity   || '').trim(),
-    variety:     (r.variety     || r.Variety     || '').trim(),
-    market:      (r.market      || r.Market      || '').trim(),
-    district:    (r.district    || r.District    || '').trim(),
-    state:       (r.state       || r.State       || '').trim(),
-    minPrice:    parseFloat(r.min_price  || 0),
-    maxPrice:    parseFloat(r.max_price  || 0),
-    modalPrice:  modal,
-    pricePerKg:  parseFloat((modal / 100).toFixed(2)),
-    arrivalDate: (r.arrival_date || r.Arrival_Date || '').trim(),
-    emoji:       getEmoji(r.commodity),
-    category:    getCategory(r.commodity),
-  };
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Core fetch with retry
+// Core fetch from backend
 // ─────────────────────────────────────────────────────────────────────────────
-async function fetchPage({ state = '', district = '', market = '', limit = 500, offset = 0 } = {}, retries = 3) {
-  const params = new URLSearchParams({ 'api-key': API_KEY, format: 'json', limit: String(limit), offset: String(offset) });
-  if (state)    params.append('filters[state]',    state);
-  if (district) params.append('filters[district]', district);
-  if (market)   params.append('filters[market]',   market);
-
-  const url = `${BASE}?${params.toString()}`;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (err) {
-      if (attempt === retries) throw err;
-      await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
-    }
-  }
-}
-
-async function fetchAllPages({ state = '', district = '', market = '' } = {}) {
-  const cacheKey = `${state}|${district}|${market}`.toLowerCase();
+async function fetchFromBackend({ state = 'Gujarat', district = '', commodity = '', limit = 500 } = {}) {
+  const cacheKey = `${state}|${district}|${commodity}`.toLowerCase();
   if (_cache[cacheKey] && Date.now() - _cache[cacheKey].at < TTL) {
     return { data: _cache[cacheKey].data, source: 'cache' };
   }
+
   try {
-    const first = await fetchPage({ state, district, market, limit: 500, offset: 0 });
-    if (!first.records || !Array.isArray(first.records) || first.records.length === 0) {
-      return { data: [], source: 'empty' };
-    }
-    const total      = parseInt(first.total || first.count || '0', 10) || first.records.length;
-    const pageSize   = 500;
-    const totalPages = Math.ceil(total / pageSize);
-    let all = [...first.records];
+    const params = new URLSearchParams({ state, limit: String(limit) });
+    if (district)  params.append('district',  district);
+    if (commodity) params.append('commodity', commodity);
 
-    const BATCH = 6;
-    for (let start = 1; start < totalPages; start += BATCH) {
-      const end     = Math.min(start + BATCH, totalPages);
-      const offsets = Array.from({ length: end - start }, (_, i) => (start + i) * pageSize);
-      const results = await Promise.allSettled(offsets.map(o => fetchPage({ state, district, market, limit: pageSize, offset: o })));
-      for (const r of results) {
-        if (r.status === 'fulfilled' && Array.isArray(r.value?.records)) all = all.concat(r.value.records);
-      }
+    const res  = await fetch(`${BACKEND_URL}/api/mandi?${params.toString()}`);
+    const json = await res.json();
+
+    if (!json.success || !Array.isArray(json.data) || json.data.length === 0) {
+      // Backend returned empty — use fallback
+      return { data: FALLBACK, source: 'fallback' };
     }
 
-    const processed = all.filter(r => (r.commodity || r.Commodity || '').trim().length > 0).map(mapRecord);
+    // Ensure emoji/category are present (backend may not add them)
+    const processed = json.data.map(r => ({
+      ...r,
+      emoji:    r.emoji    || getEmoji(r.commodity),
+      category: r.category || getCategory(r.commodity),
+      pricePerKg: r.pricePerKg || parseFloat((r.modalPrice / 100).toFixed(2)),
+    }));
+
     _cache[cacheKey] = { data: processed, at: Date.now() };
-    return { data: processed, source: 'live' };
+    return { data: processed, source: json.source || 'live' };
   } catch (err) {
+    console.warn('[MandiApi] Backend fetch failed, using fallback:', err?.message);
     if (_cache[cacheKey]?.data) return { data: _cache[cacheKey].data, source: 'stale-cache' };
-    return { data: [], source: 'error' };
+    return { data: FALLBACK, source: 'fallback' };
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC API
+// PUBLIC API — same signatures as before so no screen changes needed
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function fetchStates() {
-  const cacheKey = '__states__';
-  if (_cache[cacheKey] && Date.now() - _cache[cacheKey].at < TTL) {
-    return { data: _cache[cacheKey].data, source: 'cache' };
-  }
   try {
-    const pages = await Promise.allSettled([
-      fetchPage({ limit: 500, offset: 0 }),
-      fetchPage({ limit: 500, offset: 500 }),
-      fetchPage({ limit: 500, offset: 1000 }),
-    ]);
-    const allRecords = pages.flatMap(p =>
-      p.status === 'fulfilled' && Array.isArray(p.value.records) ? p.value.records : []
-    );
-    const states = [...new Set(allRecords.map(r => (r.state || r.State || '').trim()).filter(Boolean))].sort();
-    const result = states.length > 0 ? states : FALLBACK_STATES;
-    _cache[cacheKey] = { data: result, at: Date.now() };
-    return { data: result, source: states.length > 0 ? 'live' : 'fallback' };
+    const res  = await fetch(`${BACKEND_URL}/api/mandi/states`);
+    const json = await res.json();
+    if (json.success && Array.isArray(json.states) && json.states.length > 0) {
+      return { data: json.states, source: 'live' };
+    }
+    return { data: FALLBACK_STATES, source: 'fallback' };
   } catch {
     return { data: FALLBACK_STATES, source: 'fallback' };
   }
 }
 
-export async function fetchByState(state)                  { return fetchAllPages({ state }); }
-export async function fetchByDistrict(state, district)     { return fetchAllPages({ state, district }); }
+export async function fetchByState(state) {
+  return fetchFromBackend({ state, limit: 500 });
+}
 
-/** Fetch ALL crops for a specific mandi — no record cap, strict market filter */
+export async function fetchByDistrict(state, district) {
+  return fetchFromBackend({ state, district, limit: 500 });
+}
+
 export async function fetchByMarket(state, district, market) {
-  const cacheKey = `mkt|${state}|${district}|${market}`.toLowerCase();
-  if (_cache[cacheKey] && Date.now() - _cache[cacheKey].at < TTL) {
-    return { data: _cache[cacheKey].data, source: 'cache' };
-  }
-  try {
-    const first = await fetchPage({ state, district, market, limit: 500, offset: 0 });
-    if (!first.records || !Array.isArray(first.records)) return { data: [], source: 'empty' };
+  const res = await fetchFromBackend({ state, district, limit: 500 });
+  if (!res.data || res.data.length === 0) return res;
+  const mandiLower = market.toLowerCase().trim();
+  const filtered   = res.data.filter(r => (r.market || '').toLowerCase().trim() === mandiLower);
+  return { data: filtered.length > 0 ? filtered : res.data, source: res.source };
+}
 
-    const total      = parseInt(first.total || first.count || '0', 10) || first.records.length;
-    const totalPages = Math.ceil(total / 500);
-    let all = [...first.records];
-
-    const BATCH = 8;
-    for (let start = 1; start < totalPages; start += BATCH) {
-      const end     = Math.min(start + BATCH, totalPages);
-      const offsets = Array.from({ length: end - start }, (_, i) => (start + i) * 500);
-      const results = await Promise.allSettled(offsets.map(o => fetchPage({ state, district, market, limit: 500, offset: o })));
-      for (const r of results) {
-        if (r.status === 'fulfilled' && Array.isArray(r.value?.records)) all = all.concat(r.value.records);
-      }
-    }
-
-    const mandiLower = market.toLowerCase().trim();
-    const processed  = all.filter(r => (r.commodity || r.Commodity || '').trim().length > 0).map(mapRecord);
-    const strict     = processed.filter(r => r.market.toLowerCase().trim() === mandiLower);
-    const final      = strict.length > 0 ? strict : processed;
-
-    _cache[cacheKey] = { data: final, at: Date.now() };
-    return { data: final, source: 'live' };
-  } catch (err) {
-    if (_cache[cacheKey]?.data) return { data: _cache[cacheKey].data, source: 'stale-cache' };
-    return { data: [], source: 'error' };
-  }
+/** Main entry used by home strip and market screen */
+export async function fetchMandiPrices({ state = 'Gujarat', district = '', market = '', limit = 100 } = {}) {
+  if (market)   return fetchByMarket(state, district, market);
+  if (district) return fetchByDistrict(state, district);
+  return fetchByState(state);
 }
 
 /**
- * NEARBY: Fetch all mandis in user's state, geocode each unique market,
- * calculate Haversine distance from user, sort nearest → farthest.
- *
- * Returns MarketGroup[] with `distanceKm` and `distanceLabel` attached.
+ * Nearby mandis with distance — fetches all records for state,
+ * groups by market, geocodes districts, sorts by distance.
  */
 export async function fetchNearbyWithDistance(userLat, userLng, state, district = '') {
-  // 1. Fetch all records for the state
-  const res = await fetchAllPages({ state });
-  if (!res.data || res.data.length === 0) return { groups: [], source: res.source };
+  const res = await fetchFromBackend({ state, limit: 500 });
+  if (!res.data || res.data.length === 0) {
+    return { groups: groupByMarket(FALLBACK, district), source: 'fallback' };
+  }
 
-  // 2. Group by market
+  // Group by market
   const map = {};
   for (const r of res.data) {
-    const key = r.market.trim();
+    const key = (r.market || 'Unknown').trim();
     if (!map[key]) map[key] = { market: key, district: r.district, state: r.state, prices: [] };
     map[key].prices.push(r);
   }
   const groups = Object.values(map);
 
-  // 3. Geocode each unique district in parallel (not each market — too many requests)
-  //    Markets in the same district share the district's coordinates
+  // Geocode unique districts in parallel
   const uniqueDistricts = [...new Set(groups.map(g => g.district).filter(Boolean))];
   const districtCoords  = {};
-
   await Promise.allSettled(
     uniqueDistricts.map(async (d) => {
       const coords = await geocodePlace(`${d}, ${state}, India`);
@@ -272,9 +201,9 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
     })
   );
 
-  // 4. Attach distance to each group
+  // Attach distance
   for (const g of groups) {
-    const coords = districtCoords[g.district.toLowerCase()];
+    const coords = districtCoords[(g.district || '').toLowerCase()];
     if (coords && userLat != null && userLng != null) {
       g.distanceKm    = haversineDistance(userLat, userLng, coords.lat, coords.lng);
       g.distanceLabel = formatDistance(g.distanceKm);
@@ -286,8 +215,7 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
     }
   }
 
-  // 5. Sort: mandis with known distance first (nearest → farthest),
-  //    then mandis without distance (sorted by crop count)
+  // Sort nearest first
   groups.sort((a, b) => {
     if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm;
     if (a.distanceKm != null) return -1;
@@ -296,14 +224,6 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
   });
 
   return { groups, source: res.source };
-}
-
-/** Backward-compat alias */
-export async function fetchMandiPrices({ state = '', district = '', market = '' } = {}) {
-  if (market)   return fetchByMarket(state, district, market);
-  if (district) return fetchByDistrict(state, district);
-  if (state)    return fetchByState(state);
-  return fetchAllPages({});
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -315,7 +235,7 @@ export function getMarkets(data)   { return [...new Set(data.map(r => r.market).
 
 export function groupByMarket(data, priorityDistrict = '') {
   const map = {};
-  data.forEach(r => {
+  (data || []).forEach(r => {
     const key = (r.market || 'Unknown').trim();
     if (!map[key]) map[key] = { market: key, district: r.district, state: r.state, prices: [], distanceKm: null, distanceLabel: null };
     map[key].prices.push(r);
@@ -324,7 +244,7 @@ export function groupByMarket(data, priorityDistrict = '') {
   if (priorityDistrict) {
     const pLower = priorityDistrict.toLowerCase();
     const score  = (g) => {
-      const d = g.district.toLowerCase();
+      const d = (g.district || '').toLowerCase();
       if (d === pLower) return 0;
       if (d.includes(pLower) || pLower.includes(d)) return 1;
       return 2;
@@ -369,7 +289,7 @@ export async function reverseGeocode(lat, lng) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Fallback data
+// Fallback static data
 // ─────────────────────────────────────────────────────────────────────────────
 export const FALLBACK_STATES = [
   'Andhra Pradesh','Bihar','Chhattisgarh','Gujarat','Haryana',

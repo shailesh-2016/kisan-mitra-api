@@ -1,9 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ── Base URL ──────────────────────────────────────────────────────────────────
-// Android emulator: use 10.0.2.2 instead of localhost
-// Physical device: use your PC's local IP (e.g. http://192.168.x.x:5000)
-const BASE_URL = 'http://10.61.195.81:5000';
+const BASE_URL = 'https://kisan-mitra-api-8ski.onrender.com';
 
 const TOKEN_KEY = '@kisan_token';
 const USER_KEY  = '@kisan_user';
