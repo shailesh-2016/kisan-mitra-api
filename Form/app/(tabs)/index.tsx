@@ -29,7 +29,7 @@ function MandiPriceStrip({ onPress }: { onPress: () => void }) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetchMandiPrices({ state: 'Gujarat', district: 'Ahmedabad', limit: 20 });
+      const res = await fetchMandiPrices({ state: 'Gujarat', district: 'Ahmedabad' });
       const seen = new Set<string>();
       const unique: MandiItem[] = [];
       for (const r of (res.data || [])) {

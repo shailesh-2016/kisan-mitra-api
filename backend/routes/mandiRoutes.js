@@ -1,11 +1,14 @@
 const express = require('express');
 const router  = express.Router();
-const { getMandiPrices, getDistricts } = require('../controllers/mandiController');
+const { getMandiPrices, getDistricts, getStates } = require('../controllers/mandiController');
 
-// GET /api/mandi              → all prices (optional ?state=Gujarat&district=Ahmedabad&commodity=tomato)
+// GET /api/mandi              → all prices (?state=Gujarat&district=Ahmedabad&commodity=tomato)
 router.get('/', getMandiPrices);
 
-// GET /api/mandi/districts    → list of districts
+// GET /api/mandi/districts    → list of districts (?state=Gujarat)
 router.get('/districts', getDistricts);
+
+// GET /api/mandi/states       → list of all states
+router.get('/states', getStates);
 
 module.exports = router;
