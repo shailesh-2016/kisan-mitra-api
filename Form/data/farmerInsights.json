@@ -1,0 +1,504 @@
+[
+  {
+    "id": "rain_1_high",
+    "condition": {
+      "weather": ["Rain", "Thunderstorm", "Drizzle"]
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Rain expected! Avoid irrigation today and drain excess water from the fields immediately to prevent root rot.",
+      "hi": "बारिश की संभावना! आज सिंचाई से बचें और जड़ों को सड़ने से बचाने के लिए खेतों से अतिरिक्त पानी तुरंत निकालें।",
+      "gu": "વરસાદની શક્યતા! આજે સિંચાઈ ટાળો અને મૂળના સડાને અટકાવવા માટે ખેતરમાંથી વધારાનું પાણી તરત કાઢી નાખો."
+    }
+  },
+  {
+    "id": "rain_2_high",
+    "condition": {
+      "weather": ["Rain", "Thunderstorm"]
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Protect harvested crops. Cover any grain or produce left outside immediately.",
+      "hi": "कटी हुई फसल को बचाएं। बाहर रखे अनाज या उपज को तुरंत ढंक लें।",
+      "gu": "લણેલા પાકનું રક્ષણ કરો. બહાર પડેલા અનાજ કે પેદાશને તરત જ ઢાંકી દો."
+    }
+  },
+  {
+    "id": "rain_3_medium",
+    "condition": {
+      "weather": ["Rain"]
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Delay any pesticide or fertilizer spray application, as it will wash away with the rain.",
+      "hi": "कीटनाशक या उर्वरक के छिड़काव को टाल दें, क्योंकि यह बारिश के साथ धुल जाएगा।",
+      "gu": "કોઈપણ જંતુનાશક કે ખાતરનો છંટકાવ મોકૂફ રાખો, કારણકે તે વરસાદ સાથે ધોવાઈ જશે."
+    }
+  },
+  {
+    "id": "heat_1_high",
+    "condition": {
+      "tempMin": 35
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Extreme heat warning. Irrigate crops lightly in the evening or early morning to reduce heat stress.",
+      "hi": "अत्यधिक गर्मी की चेतावनी। गर्मी के तनाव को कम करने के लिए शाम या सुबह तड़के हल्की सिंचाई करें।",
+      "gu": "સખત ગરમીની ચેતવણી. ગરમીની અસર ઘટાડવા સાંજે અથવા વહેલી સવારે હળવી સિંચાઈ કરો."
+    }
+  },
+  {
+    "id": "heat_2_medium",
+    "condition": {
+      "tempMin": 35
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Avoid any midday chemical spraying, as high temperatures can burn the leaves.",
+      "hi": "दोपहर में किसी भी रसायन के छिड़काव से बचें, तेज तापमान से पत्तियां जल सकती हैं।",
+      "gu": "બપોરે કોઈપણ કેમિકલ છાંટવાનું ટાળો, કારણકે high તાપમાનથી પાંદડાઓ બળી શકે છે."
+    }
+  },
+  {
+    "id": "heat_3_medium",
+    "condition": {
+      "tempMin": 38
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Provide shade for young seedlings in nurseries to protect from direct sun damage.",
+      "hi": "सीधे धूप से होने वाले नुकसान से बचाने के लिए नर्सरी में छोटे पौधों को छाया दें।",
+      "gu": "સીધા તડકાથી થતા નુકસાન સામે રક્ષણ આપવા નર્સરીમાં નાના છોડને છાંયડો આપો."
+    }
+  },
+  {
+    "id": "heat_4_high",
+    "condition": {
+      "tempMin": 40
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Critical Heat: Apply organic mulches on soil to conserve moisture for plant roots.",
+      "hi": "अत्यधिक गर्मी: पौधों की जड़ों के लिए नमी बनाए रखने के लिए मिट्टी पर जैविक मल्च (घास-फूस) डालें।",
+      "gu": "ખૂબ ગરમી: છોડના મૂળ માટે ભેજ જાળવી રાખવા જમીન પર સેન્દ્રિય કચરો (મલ્ચ) પાથરો."
+    }
+  },
+  {
+    "id": "cold_1_high",
+    "condition": {
+      "tempMax": 15
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Cold wave expected. Cover sensitive crops and young plants with plastic sheets or frost covers overnight.",
+      "hi": "शीत लहर की संभावना। रात भर संवेदनशील फसलों और छोटे पौधों को प्लास्टिक की चादर या पाले से बचाने वाले कवर से ढकें।",
+      "gu": "શીત લહેરની શક્યતા. રાતોરાત સંવેદનશીલ પાક અને નાના છોડને પ્લાસ્ટિકની ચાદર કે હિમાચ્છાદિત કવરથી ઢાંકી દો."
+    }
+  },
+  {
+    "id": "cold_2_medium",
+    "condition": {
+      "tempMax": 15
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Avoid field watering late at night to prevent frost damage to plant roots.",
+      "hi": "पौधों की जड़ों को पाले से होने वाले नुकसान से बचाने के लिए देर रात में पानी देने से बचें।",
+      "gu": "છોડના મૂળને હિમથી થતા નુકસાનથી બચાવવા મોડી રાત્રે ખેતરમાં પાણી આપવાનું ટાળો."
+    }
+  },
+  {
+    "id": "cold_3_low",
+    "condition": {
+      "tempMax": 10
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Create light smoke at the field edges before dawn to protect crops from frost damage.",
+      "hi": "फसलों को पाले से बचाने के लिए भोर से पहले खेत के किनारों पर हल्का धुआं करें।",
+      "gu": "પાકને હિમથી બચાવવા માટે પરોઢ પહેલાં ખેતરના કાંઠે નાનો ધુમાડો કરો."
+    }
+  },
+  {
+    "id": "humidity_1_high",
+    "condition": {
+      "humidityMin": 80
+    },
+    "priority": "high",
+    "messages": {
+      "en": "High humidity increases fungal disease risk. Apply preventive broad-spectrum fungicide today.",
+      "hi": "अधिक नमी से फफूंद जनित रोगों का खतरा बढ़ जाता है। आज ही सुरक्षात्मक फफूंदनाशक का छिड़काव करें।",
+      "gu": "વધુ ભેજને કારણે ફૂગના રોગોનો ખતરો વધી જાય છે. આજે રોગપ્રતિકારક ફંગિસાઈડનો છંટકાવ કરો."
+    }
+  },
+  {
+    "id": "humidity_2_medium",
+    "condition": {
+      "humidityMin": 85,
+      "tempMin": 25,
+      "tempMax": 35
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Warm and humid conditions are ideal for pests. Monitor fields closely for insects like aphids and hoppers.",
+      "hi": "गर्म और नम स्थितियाँ कीटों के लिए अनुकूल हैं। एफिड्स और हॉपर जैसे कीड़ों के लिए खेतों की बारीकी से निगरानी करें।",
+      "gu": "ગરમ અને ભેજવાળી સ્થિતિ જીવાતો માટે અનુકૂળ છે. એફિડ્સ અને હોપર્સ જેવા જંતુઓ માટે ખેતરોનું ચોકસાઈથી નિરીક્ષણ કરો."
+    }
+  },
+  {
+    "id": "humidity_3_low",
+    "condition": {
+      "humidityMin": 80
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Improve field ventilation by removing dense bottom leaves in viney and bushy crops.",
+      "hi": "बेल और झाड़ीदार फसलों में घनी निचली पत्तियों को हटाकर खेत में हवा का संचार सुधारें।",
+      "gu": "વેલા અને ઝાડીવાળા પાકોમાં નીચેના ઘટ્ટ પાંદડાઓ દૂર કરી હવા-ઉજાસ સુધારો."
+    }
+  },
+  {
+    "id": "wind_1_high",
+    "condition": {
+      "windSpeedMin": 20
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Strong wind alert. High risk of crop lodging. Provide immediate support (staking/tying) to tall crops.",
+      "hi": "तेज हवा की चेतावनी। फसल के गिरने का खतरा है। लंबी फसलों को तुरंत सहारा (बांस या रस्सी) दें।",
+      "gu": "ઝડપી પવનની ચેતવણી. પાક ઉખડી પડવાનું મોટું જોખમ. લાંબા પાકોને તરત જ ટેકો (લાકડી/દોરી) આપો."
+    }
+  },
+  {
+    "id": "wind_2_medium",
+    "condition": {
+      "windSpeedMin": 15
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Do not spray foliar fertilizers or pesticides in high winds to prevent unwanted drift.",
+      "hi": "अवांछित बहाव से बचने के लिए तेज हवाओं में पर्णीय उर्वरकों या कीटनाशकों का छिड़काव न करें।",
+      "gu": "અનિચ્છનીય ડ્રિફ્ટ ટાળવા માટે જોરદાર પવનમાં ખાતર કે જંતુનાશકો છાંટશો નહીં."
+    }
+  },
+  {
+    "id": "clear_1_low",
+    "condition": {
+      "weather": ["Clear", "Sunny"],
+      "humidityMax": 60,
+      "tempMax": 35
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Clear weather. Excellent time to harvest mature crops and safely sun-dry the produce.",
+      "hi": "मौसम साफ है। पकी फसलों की कटाई और उपज को धूप में सुखाने के लिए यह बेहतरीन समय है।",
+      "gu": "સ્વચ્છ હવામાન. પાકેલા પાકની લણણી અને પેદાશને સુરક્ષિત તડકામાં સૂકવવા માટે ઉત્તમ સમય છે."
+    }
+  },
+  {
+    "id": "clear_2_low",
+    "condition": {
+      "weather": ["Clear", "Sunny"],
+      "windSpeedMax": 15
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Favorable conditions for pesticide spraying. Early morning or late evening is the most effective time.",
+      "hi": "कीटनाशक छिड़काव के लिए अनुकूल स्थिति। सुबह जल्दी या देर शाम सबसे प्रभावी समय है।",
+      "gu": "જંતુનાશક છંટકાવ માટે અનુકૂળ સ્થિતિ. વહેલી સવારે અથવા મોડી સાંજે સૌથી અસરકારક સમય છે."
+    }
+  },
+  {
+    "id": "clear_3_low",
+    "condition": {
+      "weather": ["Clear"]
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Great day to conduct routine weeding and prepare land for next sowing.",
+      "hi": "नियमित निराई-गुड़ाई करने और अगली बुवाई के लिए भूमि तैयार करने का अच्छा दिन है।",
+      "gu": "નીંદણ નીકાળવા અને આગામી વાવણી માટે જમીન તૈયાર કરવા માટેનો સરસ દિવસ."
+    }
+  },
+  {
+    "id": "mixed_1_medium",
+    "condition": {
+      "weather": ["Rain", "Drizzle"],
+      "tempMin": 28
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Warm and wet soil promotes weed growth. Prepare for mechanical weeding once rain stops.",
+      "hi": "गर्म और नम मिट्टी में खतपतवार तेजी से बढ़ती है। बारिश रुकते ही निराई की तैयारी करें।",
+      "gu": "ગરમ અને ભીની માટી નિંદામણને પ્રોત્સાહન આપે છે. વરસાદ બંધ થતાં નિંદામણ કરવાની તૈયારી શરૂ કરો."
+    }
+  },
+  {
+    "id": "extreme_1_high",
+    "condition": {
+      "humidityMin": 90,
+      "weather": ["Fog"]
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Heavy fog increases leaf blight risk. Make sure field margins allow for good air drainage.",
+      "hi": "घना कोहरा पत्ती झुलसा (ब्लाइट) का खतरा बढ़ाता है। सुनिश्चित करें कि खेत के किनारों से हवा की आवाजाही ठीक हो।",
+      "gu": "ગાઢ ધુમ્મસથી લીફ બ્લાઇટનું જોખમ વધે છે. ખેતરના છેડે હવાની અવરજવર બરાબર છે કે નહીં તેની ખાતરી કરો."
+    }
+  },
+  {
+    "id": "heat_dry_high",
+    "condition": {
+      "tempMin": 36,
+      "humidityMax": 40
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Hot and dry conditions! High water loss for plants. Increase your irrigation frequency immediately.",
+      "hi": "गर्म और शुष्क परिस्थितियाँ! पौधों से पानी की कमी तेजी से होती है। तुरंत सिंचाई बढ़ाएं।",
+      "gu": "ગરમ અને સૂકું વાતાવરણ! છોડમાંથી પાણીનું નુકસાન વધારે થાય છે. તરત જ તમારી સિંચાઈમાં વધારો કરો."
+    }
+  },
+  {
+    "id": "cold_dry_medium",
+    "condition": {
+      "tempMax": 20,
+      "weather": ["Clear"]
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Cool daytime temperatures. Ideal conditions to prune older branches in fruit orchards.",
+      "hi": "दिन का तापमान ठंडा है। फलों के बागों में पुरानी शाखाओं की छंटाई (प्रूनिंग) करने के लिए आदर्श स्थिति है।",
+      "gu": "દિવસના તાપમાન ઠંડું છે. ફળોની વાડીમાં જૂની ડાળીઓની કાપણી (પ્રુનિંગ) કરવા માટે આદર્શ સ્થિતિ છે."
+    }
+  },
+
+  {
+    "id": "rain_4_medium",
+    "condition": {
+      "weather": ["Rain", "Drizzle"]
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "After rain, check fields for waterlogging. Open drainage channels to prevent root damage.",
+      "hi": "बारिश के बाद खेतों में जलभराव की जांच करें। जड़ों को नुकसान से बचाने के लिए जल निकासी नालियां खोलें।",
+      "gu": "વરસાદ પછી ખેતરોમાં પાણી ભરાવાની તપાસ કરો. મૂળને નુકસાન ટાળવા ગટર ખોલો."
+    }
+  },
+  {
+    "id": "rain_5_low",
+    "condition": {
+      "weather": ["Rain"]
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Light rain is beneficial for germination. Good time to sow seeds if soil temperature is above 18°C.",
+      "hi": "हल्की बारिश अंकुरण के लिए फायदेमंद है। यदि मिट्टी का तापमान 18°C से ऊपर है तो बीज बोने का अच्छा समय है।",
+      "gu": "હળવો વરસાદ અંકુરણ માટે ફાયદાકારક છે. જો જમીનનું તાપમાન 18°C ઉપર હોય તો બીજ વાવવાનો સારો સમય."
+    }
+  },
+  {
+    "id": "heat_5_low",
+    "condition": {
+      "tempMin": 32,
+      "tempMax": 36
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Moderate heat. Apply potassium-rich fertilizer to improve crop heat tolerance.",
+      "hi": "मध्यम गर्मी। फसल की गर्मी सहनशीलता बढ़ाने के लिए पोटेशियम युक्त उर्वरक डालें।",
+      "gu": "મધ્યમ ગરમી. પાકની ગરમી સહન કરવાની ક્ષમતા વધારવા પોટેશિયમ ભરપૂર ખાતર આપો."
+    }
+  },
+  {
+    "id": "cold_4_high",
+    "condition": {
+      "tempMax": 8
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Severe frost risk. Light irrigation before sunset can release heat and protect crops from freezing.",
+      "hi": "गंभीर पाले का खतरा। सूर्यास्त से पहले हल्की सिंचाई करने से गर्मी निकलती है और फसलें जमने से बचती हैं।",
+      "gu": "ગંભીર હિમ નો ખતરો. સૂર્યાસ્ત પહેલા હળવી સિંચાઈ ગરમી છોડે છે અને પાકને ઠારવાથી બચાવે છે."
+    }
+  },
+  {
+    "id": "cold_5_medium",
+    "condition": {
+      "tempMax": 12
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Cold nights slow down plant growth. Apply phosphorus fertilizer to strengthen root development.",
+      "hi": "ठंडी रातें पौधों की वृद्धि धीमी कर देती हैं। जड़ों के विकास को मजबूत करने के लिए फास्फोरस उर्वरक डालें।",
+      "gu": "ઠંડી રાત્રિ છોડ ની વૃદ્ધિ ધીમી કરે છે. મૂળ વિકાસ મજબૂત કરવા ફોસ્ફરસ ખાતર આપો."
+    }
+  },
+  {
+    "id": "humidity_4_high",
+    "condition": {
+      "humidityMin": 88,
+      "weather": ["Rain", "Drizzle"]
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Very high humidity with rain. Powdery mildew and downy mildew risk is critical. Spray copper-based fungicide.",
+      "hi": "बारिश के साथ बहुत अधिक नमी। पाउडरी मिल्ड्यू और डाउनी मिल्ड्यू का खतरा गंभीर है। कॉपर आधारित फफूंदनाशक का छिड़काव करें।",
+      "gu": "વરસાદ સાથે ખૂબ ઊંચી ભેજ. પાઉડરી મિલ્ડ્યૂ અને ડાઉની મિલ્ડ્યૂ નો ખતરો ગંભીર. કોપર આધારિત ફૂગનાશક છાંટો."
+    }
+  },
+  {
+    "id": "humidity_5_medium",
+    "condition": {
+      "humidityMin": 75,
+      "humidityMax": 85
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Moderate to high humidity. Inspect cotton and chili crops for boll rot and anthracnose disease.",
+      "hi": "मध्यम से अधिक नमी। कपास और मिर्च की फसलों में बॉल रॉट और एन्थ्रेक्नोज रोग की जांच करें।",
+      "gu": "મધ્યમ થી ઊંચી ભેજ. કપાસ અને મરચાના પાકમાં બૉલ રૉટ અને એન્થ્રેક્નોઝ રોગ ની તપાસ કરો."
+    }
+  },
+  {
+    "id": "wind_3_high",
+    "condition": {
+      "windSpeedMin": 30
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Very strong winds. Delay any irrigation to avoid soil erosion. Secure greenhouse covers and nets.",
+      "hi": "बहुत तेज हवाएं। मिट्टी के कटाव से बचने के लिए सिंचाई में देरी करें। ग्रीनहाउस के कवर और जाल सुरक्षित करें।",
+      "gu": "ખૂબ ઝડપી પવન. જમીન ધોવાણ ટાળવા સિંચાઈ મોકૂફ રાખો. ગ્રીનહાઉસ ઢાંકણ અને જાળ સુરક્ષિત કરો."
+    }
+  },
+  {
+    "id": "wind_4_low",
+    "condition": {
+      "windSpeedMin": 10,
+      "windSpeedMax": 20
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Light breeze. Good conditions for natural pollination of flowering crops like sunflower and mustard.",
+      "hi": "हल्की हवा। सूरजमुखी और सरसों जैसी फूल वाली फसलों के प्राकृतिक परागण के लिए अच्छी स्थिति।",
+      "gu": "હળવો પવન. સૂર્યમુખી અને સરસવ જેવા ફૂલ ધરાવતા પાકોના કુદરતી પરાગ-ફળ ધારણ માટે સારી સ્થિति."
+    }
+  },
+  {
+    "id": "clear_4_medium",
+    "condition": {
+      "weather": ["Clear", "Sunny"],
+      "tempMin": 25,
+      "tempMax": 35
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Warm and clear day. Apply foliar micronutrient spray (zinc, boron) for better crop quality.",
+      "hi": "गर्म और साफ दिन। बेहतर फसल गुणवत्ता के लिए पर्णीय सूक्ष्म पोषक तत्व स्प्रे (जिंक, बोरॉन) करें।",
+      "gu": "ગરમ અને સ્વચ્છ દિવસ. સારી ફસલ ગુણવત્તા માટે ઝિંક, બોરોન ફોલિઅર સ્પ્રે કરો."
+    }
+  },
+  {
+    "id": "clear_5_low",
+    "condition": {
+      "weather": ["Clear"],
+      "tempMax": 30
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Pleasant weather. Good time to transplant seedlings from nursery to main field.",
+      "hi": "सुहावना मौसम। नर्सरी से मुख्य खेत में पौधों की रोपाई के लिए अच्छा समय।",
+      "gu": "સુખદ હવામાન. નર્સરીમાંથી મુખ્ย ખેતરમાં રોપ ટ્રાન્સ્પ્લાન્ટ કરવા માટે સારો સમય."
+    }
+  },
+  {
+    "id": "fog_1_high",
+    "condition": {
+      "weather": ["Fog", "Mist"]
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Dense fog reduces sunlight. Delay irrigation and watch for leaf blight symptoms on wheat and potato.",
+      "hi": "घना कोहरा सूर्यप्रकाश कम करता है। सिंचाई में देरी करें और गेहूं और आलू पर पत्ती झुलसा के लक्षण देखें।",
+      "gu": "ઘટ્ટ ધુમ્મસ સૂર્યપ્રકાશ ઘટાડે છે. સિંચાઈ મોકૂફ રાખો અને ઘઉં-બટાટા પર લીફ બ્લાઇટ ના ચિહ્નો જુઓ."
+    }
+  },
+  {
+    "id": "fog_2_medium",
+    "condition": {
+      "weather": ["Fog"]
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Foggy morning. Avoid spraying any chemicals until fog clears to ensure proper coverage.",
+      "hi": "कोहरे भरी सुबह। उचित कवरेज सुनिश्चित करने के लिए कोहरा छंटने तक कोई भी रसायन न छिड़कें।",
+      "gu": "ધુમ્મસ ભરી સવાર. યોગ્ય કવરેજ સુનિશ્ચિત કરવા ધુમ્મસ ઓછું ન થાય ત્યાં સુધી કોઈ કેમિકલ ન છાંટો."
+    }
+  },
+  {
+    "id": "snow_1_high",
+    "condition": {
+      "weather": ["Snow"]
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Snowfall expected. Move potted plants indoors and cover field crops with protective mulch immediately.",
+      "hi": "बर्फबारी की संभावना। गमले के पौधों को अंदर ले जाएं और खेत की फसलों को तुरंत सुरक्षात्मक मल्च से ढकें।",
+      "gu": "હિમ-વર્ષા ની શક્યતા. કૂંડામાં ના છોડ ઘરમાં લઈ જાઓ અને ખેત ના પાક ને તરત જ સુરક્ষા-મલ્ચ થી ઢાંકો."
+    }
+  },
+  {
+    "id": "drizzle_1_low",
+    "condition": {
+      "weather": ["Drizzle"]
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Light drizzle. Good time to apply urea top dressing as moisture helps absorption into soil.",
+      "hi": "हल्की बूंदाबांदी। यूरिया टॉप ड्रेसिंग के लिए अच्छा समय है क्योंकि नमी मिट्टी में अवशोषण में मदद करती है।",
+      "gu": "હળવી ઝરમર. યુરિયા ટૉપ ડ્રેસિંગ માટે સારો સમય, ભેજ જમીનમાં શોષણ ને મદદ કરે છે."
+    }
+  },
+  {
+    "id": "thunderstorm_2_high",
+    "condition": {
+      "weather": ["Thunderstorm"]
+    },
+    "priority": "high",
+    "messages": {
+      "en": "Thunderstorm with lightning. Do not operate any metal farm equipment. Seek shelter immediately.",
+      "hi": "बिजली के साथ तूफान। कोई भी धातु के खेती उपकरण न चलाएं। तुरंत आश्रय लें।",
+      "gu": "વીજળી સાથે વાવાઝોડું. કોઈ ધાતુ ના ખેત સાધન ન ચલાવો. તરત જ આશ્રય લો."
+    }
+  },
+  {
+    "id": "mixed_2_medium",
+    "condition": {
+      "humidityMin": 65,
+      "tempMin": 20,
+      "tempMax": 30
+    },
+    "priority": "medium",
+    "messages": {
+      "en": "Warm and moderately humid. Ideal conditions for applying bio-fertilizers and organic compost.",
+      "hi": "गर्म और मध्यम नम। जैव उर्वरकों और जैविक खाद के प्रयोग के लिए आदर्श स्थिति।",
+      "gu": "ગરમ અને મધ્યમ ભેજ. જૈવ ખાતર અને ઓર્ગેનિક કમ્પોસ્ટ ઉપયોગ માટે આદર્શ સ્થિતિ."
+    }
+  },
+  {
+    "id": "mixed_3_low",
+    "condition": {
+      "tempMin": 22,
+      "tempMax": 28,
+      "humidityMin": 55,
+      "humidityMax": 70
+    },
+    "priority": "low",
+    "messages": {
+      "en": "Comfortable growing conditions. Monitor crop growth stages and plan next fertilizer dose accordingly.",
+      "hi": "आरामदायक उगाने की स्थिति। फसल की वृद्धि अवस्था की निगरानी करें और अगली उर्वरक खुराक की योजना बनाएं।",
+      "gu": "આરામદાયક ઉગાડ ની સ્થિતિ. ફસલ ની વૃદ્ધિ અવસ્થા ની દેખ-ભાળ કરો અને આગળ ની ખાતર ની ડોઝ ની યોજના બનાવો."
+    }
+  }
+]
