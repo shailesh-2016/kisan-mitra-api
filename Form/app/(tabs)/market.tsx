@@ -16,7 +16,7 @@ import MandiLoader from '../../components/MandiLoader';
 import {
   fetchStates, fetchNearbyWithDistance, fetchByState, fetchByDistrict,
   groupByMarket, getDistricts,
-  reverseGeocode, FALLBACK_STATES, FALLBACK,
+  reverseGeocode, FALLBACK_STATES,
 } from '../../services/mandiApi';
 import {
   translateCrop, translateLabel, LANG_OPTIONS, type Lang,
@@ -337,9 +337,11 @@ export default function MarketScreen() {
         s.toLowerCase() === sLower || s.toLowerCase().includes(sLower) || sLower.includes(s.toLowerCase())
       ) || 'Gujarat';
 
+      // Pass user's district so nearby function prioritizes it
       const result = await fetchNearbyWithDistance(userLat, userLng, matchedState, district);
       const groups = (result.groups || []) as MarketGroup[];
 
+      // Match district name to API district names
       let matchedDistrict = district;
       if (district && groups.length > 0) {
         const apiDistricts = [...new Set(groups.map((g: MarketGroup) => g.district).filter(Boolean))];
@@ -350,12 +352,13 @@ export default function MarketScreen() {
       }
 
       setNearbyInfo({ district: matchedDistrict, state: matchedState });
-      setNearbyGroups(groups.length > 0 ? groups : (groupByMarket(FALLBACK, 'Ahmedabad') as MarketGroup[]));
+      setNearbyGroups(groups);
       setDataSource(result.source || '');
       fadeIn();
-    } catch {
-      setNearbyGroups(groupByMarket(FALLBACK, 'Ahmedabad') as MarketGroup[]);
-      setNearbyInfo({ district: 'Ahmedabad', state: 'Gujarat' });
+    } catch (err) {
+      console.warn('[Market] loadNearby error:', err);
+      setNearbyGroups([]);
+      setNearbyInfo({ district: 'Gujarat', state: 'Gujarat' });
     } finally { setNearbyLoading(false); }
   }
 

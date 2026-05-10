@@ -241,17 +241,15 @@ export async function fetchByMarket(state, district, market) {
 }
 
 /**
- * NEARBY: Fetch all mandis in user's state, geocode each unique market,
- * calculate Haversine distance from user, sort nearest → farthest.
- *
- * Returns MarketGroup[] with `distanceKm` and `distanceLabel` attached.
+ * NEARBY: Fetch all mandis in user's state.
+ * Geocodes all districts in parallel, sorts by actual distance from user.
+ * If user's district has no data today, nearest available districts show first.
  */
 export async function fetchNearbyWithDistance(userLat, userLng, state, district = '') {
-  // 1. Fetch all records for the state
   const res = await fetchAllPages({ state });
   if (!res.data || res.data.length === 0) return { groups: [], source: res.source };
 
-  // 2. Group by market
+  // Group by market
   const map = {};
   for (const r of res.data) {
     const key = r.market.trim();
@@ -260,21 +258,23 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
   }
   const groups = Object.values(map);
 
-  // 3. Geocode each unique district in parallel (not each market — too many requests)
-  //    Markets in the same district share the district's coordinates
+  // Geocode ALL unique districts in parallel (fast, ~5-10 districts for a state)
   const uniqueDistricts = [...new Set(groups.map(g => g.district).filter(Boolean))];
   const districtCoords  = {};
 
   await Promise.allSettled(
     uniqueDistricts.map(async (d) => {
-      const coords = await geocodePlace(`${d}, ${state}, India`);
-      if (coords) districtCoords[d.toLowerCase()] = coords;
+      try {
+        const coords = await geocodePlace(`${d}, ${state}, India`);
+        if (coords) districtCoords[d.toLowerCase()] = coords;
+      } catch {}
     })
   );
 
-  // 4. Attach distance to each group
+  // Attach distance using district coords
   for (const g of groups) {
-    const coords = districtCoords[g.district.toLowerCase()];
+    const dKey   = (g.district || '').toLowerCase();
+    const coords = districtCoords[dKey];
     if (coords && userLat != null && userLng != null) {
       g.distanceKm    = haversineDistance(userLat, userLng, coords.lat, coords.lng);
       g.distanceLabel = formatDistance(g.distanceKm);
@@ -286,8 +286,8 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
     }
   }
 
-  // 5. Sort: mandis with known distance first (nearest → farthest),
-  //    then mandis without distance (sorted by crop count)
+  // Sort strictly by distance — nearest first regardless of district
+  // This means if Ahmedabad has no data today, Gandhinagar (30km away) shows before Surat (250km)
   groups.sort((a, b) => {
     if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm;
     if (a.distanceKm != null) return -1;

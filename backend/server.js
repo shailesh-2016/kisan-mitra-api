@@ -20,6 +20,7 @@ app.use('/api/profit',  require('./routes/profitRoutes'));
 app.use('/api/mandi',   require('./routes/mandiRoutes'));
 app.use('/api/post',    require('./routes/postRoutes'));
 app.use('/api/social',  require('./routes/followRoutes'));
+app.use('/',            require('./routes/pagesRoutes'));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {

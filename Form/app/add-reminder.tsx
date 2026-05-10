@@ -114,6 +114,7 @@ function DrumPicker({ data, selected, onSelect, format, width = 72 }: DrumProps)
         getItemLayout={(_, index) => ({ length: ITEM_H, offset: ITEM_H * index, index })}
         style={{ height: DRUM_H }}
         bounces={false}
+        nestedScrollEnabled={true}
       />
     </View>
   );
@@ -208,6 +209,7 @@ export default function AddReminderScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.content}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={true}
       >
         {/* ── Quick suggestions ── */}
         <Text style={[s.label, { color: theme.textSecondary }]}>{t('reminder.quickSelect')}</Text>

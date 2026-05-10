@@ -38,8 +38,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "googleServicesFile": "./google-services.json"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -75,7 +74,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "kisan-mitra-app"
+        "projectId": "5d8ed317-cbdb-4142-9c1f-4227ca66df2e"
       }
     }
   }
