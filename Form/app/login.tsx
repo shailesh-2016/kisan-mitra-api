@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, StatusBar, KeyboardAvoidingView,
@@ -134,7 +134,7 @@ export default function LoginScreen() {
           {/* Bottom decoration */}
           <View style={s.bottomDeco}>
             <View style={[s.decoLine, { backgroundColor: theme.border }]} />
-            <Text style={[s.decoText, { color: theme.textSecondary }]}>Kisan Mitra</Text>
+            <Text style={[s.decoText, { color: theme.textSecondary }]}>Kisan Plus</Text>
             <View style={[s.decoLine, { backgroundColor: theme.border }]} />
           </View>
 

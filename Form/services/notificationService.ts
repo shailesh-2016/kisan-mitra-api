@@ -1,6 +1,6 @@
-/**
+﻿/**
  * notificationService.ts
- * Smart notification engine for Kisan Mitra.
+ * Smart notification engine for Kisan Plus.
  * Generates, stores, and manages dynamic notifications.
  */
 

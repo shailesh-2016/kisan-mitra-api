@@ -1,4 +1,4 @@
-const twilio = require('twilio');
+﻿const twilio = require('twilio');
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -15,7 +15,7 @@ const sendOtpSms = async (mobile, otp) => {
   const to = mobile.startsWith('+') ? mobile : `+91${mobile}`;
 
   const message = await client.messages.create({
-    body: `Your Kisan Mitra OTP is: ${otp}. Valid for 10 minutes. Do not share with anyone.`,
+    body: `Your Kisan Plus OTP is: ${otp}. Valid for 10 minutes. Do not share with anyone.`,
     from: process.env.TWILIO_PHONE_NUMBER,
     to,
   });

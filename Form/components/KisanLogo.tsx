@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZE } from '../constants/theme';
@@ -43,7 +43,7 @@ export default function KisanLogo({ size = 'md', variant = 'full', light = false
             fontSize: s.text,
             color: light ? COLORS.white : theme.primary,
           }]}>
-            Kisan Mitra
+            Kisan Plus
           </Text>
           <Text style={[styles.tagline, {
             fontSize: s.sub,

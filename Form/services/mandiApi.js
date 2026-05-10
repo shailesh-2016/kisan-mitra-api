@@ -1,4 +1,4 @@
-// ── Data.gov.in Mandi Price API ───────────────────────────────────────────────
+﻿// ── Data.gov.in Mandi Price API ───────────────────────────────────────────────
 const API_KEY     = '579b464db66ec23bdd000001052c14f0ffe34a0078f211bcb66705d8';
 const RESOURCE_ID = '9ef84268-d588-465a-a308-a864a43d0070';
 const BASE        = `https://api.data.gov.in/resource/${RESOURCE_ID}`;
@@ -37,7 +37,7 @@ async function geocodePlace(query) {
   if (_geoCache[key]) return _geoCache[key];
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=in`;
-    const res  = await fetch(url, { headers: { 'User-Agent': 'KisanMitraApp/1.0' } });
+    const res  = await fetch(url, { headers: { 'User-Agent': 'KisanPlusApp/1.0' } });
     const json = await res.json();
     if (json[0]) {
       const coords = { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
@@ -164,7 +164,15 @@ async function fetchAllPages({ state = '', district = '', market = '' } = {}) {
       }
     }
 
-    const processed = all.filter(r => (r.commodity || r.Commodity || '').trim().length > 0).map(mapRecord);
+    const processed = all
+      .filter(r => (r.commodity || r.Commodity || '').trim().length > 0)
+      .map(mapRecord)
+      .filter((r, idx, arr) => {
+        // Remove duplicates: same commodity + market + variety
+        const key = `${r.commodity}|${r.market}|${r.variety}`.toLowerCase();
+        return arr.findIndex(x => `${x.commodity}|${x.market}|${x.variety}`.toLowerCase() === key) === idx;
+      });
+    console.log(`[Mandi] Fetched ${all.length} raw → ${processed.length} unique records for ${state||district||market||'all'}`);
     _cache[cacheKey] = { data: processed, at: Date.now() };
     return { data: processed, source: 'live' };
   } catch (err) {
@@ -241,24 +249,47 @@ export async function fetchByMarket(state, district, market) {
 }
 
 /**
- * NEARBY: Fetch all mandis in user's state.
- * Geocodes all districts in parallel, sorts by actual distance from user.
- * If user's district has no data today, nearest available districts show first.
+ * NEARBY: Fetch mandis from user's district first (most relevant),
+ * then expand to full state if district has no/few results.
+ * Sorts strictly by distance using Haversine formula.
  */
 export async function fetchNearbyWithDistance(userLat, userLng, state, district = '') {
-  const res = await fetchAllPages({ state });
+  // Step 1: Try user's district first — fastest and most relevant
+  let res = { data: [], source: 'empty' };
+  if (district) {
+    res = await fetchAllPages({ state, district });
+    console.log(`[Mandi] District "${district}" returned ${res.data?.length || 0} records`);
+  }
+
+  // Step 2: If district has < 5 records, fetch full state
+  if (!res.data || res.data.length < 5) {
+    console.log(`[Mandi] Expanding to full state: ${state}`);
+    res = await fetchAllPages({ state });
+    console.log(`[Mandi] State "${state}" returned ${res.data?.length || 0} records`);
+  }
+
   if (!res.data || res.data.length === 0) return { groups: [], source: res.source };
 
-  // Group by market
+  // Step 3: Remove duplicate records (same commodity + market)
+  const seen = new Set();
+  const deduped = res.data.filter(r => {
+    const key = `${r.commodity}|${r.market}`.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Step 4: Group by market
   const map = {};
-  for (const r of res.data) {
+  for (const r of deduped) {
     const key = r.market.trim();
     if (!map[key]) map[key] = { market: key, district: r.district, state: r.state, prices: [] };
     map[key].prices.push(r);
   }
   const groups = Object.values(map);
+  console.log(`[Mandi] Total unique markets: ${groups.length}`);
 
-  // Geocode ALL unique districts in parallel (fast, ~5-10 districts for a state)
+  // Step 5: Geocode all unique districts in parallel
   const uniqueDistricts = [...new Set(groups.map(g => g.district).filter(Boolean))];
   const districtCoords  = {};
 
@@ -271,7 +302,7 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
     })
   );
 
-  // Attach distance using district coords
+  // Step 6: Attach distance using Haversine
   for (const g of groups) {
     const dKey   = (g.district || '').toLowerCase();
     const coords = districtCoords[dKey];
@@ -286,8 +317,7 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
     }
   }
 
-  // Sort strictly by distance — nearest first regardless of district
-  // This means if Ahmedabad has no data today, Gandhinagar (30km away) shows before Surat (250km)
+  // Step 7: Sort nearest first
   groups.sort((a, b) => {
     if (a.distanceKm != null && b.distanceKm != null) return a.distanceKm - b.distanceKm;
     if (a.distanceKm != null) return -1;
@@ -295,6 +325,7 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
     return b.prices.length - a.prices.length;
   });
 
+  console.log(`[Mandi] Nearest mandi: ${groups[0]?.market} (${groups[0]?.distanceKm?.toFixed(1)} km)`);
   return { groups, source: res.source };
 }
 
@@ -343,7 +374,7 @@ export async function reverseGeocode(lat, lng) {
   try {
     const res  = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=8&addressdetails=1`,
-      { headers: { 'User-Agent': 'KisanMitraApp/1.0' } }
+      { headers: { 'User-Agent': 'KisanPlusApp/1.0' } }
     );
     const json = await res.json();
     const addr = json.address || {};

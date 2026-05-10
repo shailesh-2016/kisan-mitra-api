@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const connectDB = require('./config/db');
@@ -24,7 +24,7 @@ app.use('/',            require('./routes/pagesRoutes'));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({ message: '🌾 Kisan Mitra API is running', status: 'ok' });
+  res.json({ message: '🌾 Kisan Plus API is running', status: 'ok' });
 });
 
 // ── 404 handler ───────────────────────────────────────────────────────────────

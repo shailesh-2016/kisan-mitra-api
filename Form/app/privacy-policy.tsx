@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, StatusBar, Linking,
@@ -12,8 +12,8 @@ import { SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 
 const LAST_UPDATED = 'April 19, 2026';
-const CONTACT_EMAIL = 'privacy@kisanmitra.app';
-const APP_NAME = 'Kisan Mitra';
+const CONTACT_EMAIL = 'privacy@KisanPlus.app';
+const APP_NAME = 'Kisan Plus';
 
 // ── Section data ──────────────────────────────────────────────────────────────
 
@@ -21,7 +21,7 @@ const UI_TEXTS: Record<string, any> = {
   en: {
     headerTitle: 'Privacy Policy',
     heroTitle: 'Your Privacy Matters',
-    heroSub: 'Kisan Mitra is built for Indian farmers. We are committed to protecting your personal data and being transparent about how we use it.',
+    heroSub: 'Kisan Plus is built for Indian farmers. We are committed to protecting your personal data and being transparent about how we use it.',
     updated: 'Last updated: ',
     summaryTitle: 'Quick Summary',
     summaryPoints: [
@@ -38,7 +38,7 @@ const UI_TEXTS: Record<string, any> = {
   hi: {
     headerTitle: 'गोपनीयता नीति',
     heroTitle: 'आपकी गोपनीयता महत्वपूर्ण है',
-    heroSub: 'किसान मित्र भारतीय किसानों के लिए बनाया गया है। हम आपके व्यक्तिगत डेटा की सुरक्षा करने और हम इसका उपयोग कैसे करते हैं, इस बारे में पारदर्शी रहने के लिए प्रतिबद्ध हैं।',
+    heroSub: 'किसान प्लस भारतीय किसानों के लिए बनाया गया है। हम आपके व्यक्तिगत डेटा की सुरक्षा करने और हम इसका उपयोग कैसे करते हैं, इस बारे में पारदर्शी रहने के लिए प्रतिबद्ध हैं।',
     updated: 'अंतिम अपडेट: ',
     summaryTitle: 'त्वरित सारांश',
     summaryPoints: [
@@ -55,7 +55,7 @@ const UI_TEXTS: Record<string, any> = {
   gu: {
     headerTitle: 'ગોપનીયતા નીતિ',
     heroTitle: 'તમારી ગોપનીયતા મહત્વપૂર્ણ છે',
-    heroSub: 'કિસાન મિત્ર ભારતીય ખેડૂતો માટે બનાવવામાં આવ્યું છે. અમે તમારા વ્યક્તિગત ડેટાને સુરક્ષિત કરવા અને તેનો ઉપયોગ કેવી રીતે કરીએ છીએ તેના વિશે પારદર્શક રહેવા માટે પ્રતિબદ્ધ છીએ.',
+    heroSub: 'કિસાન પ્લસ ભારતીય ખેડૂતો માટે બનાવવામાં આવ્યું છે. અમે તમારા વ્યક્તિગત ડેટાને સુરક્ષિત કરવા અને તેનો ઉપયોગ કેવી રીતે કરીએ છીએ તેના વિશે પારદર્શક રહેવા માટે પ્રતિબદ્ધ છીએ.',
     updated: 'છેલ્લે અપડેટ: ',
     summaryTitle: 'ઝડપી સારાંશ',
     summaryPoints: [
@@ -118,7 +118,7 @@ const SECTIONS: Record<string, any[]> = {
       title: 'Your Rights',
       content: [
         { subtitle: 'Access & Correction', text: 'You can view and edit your profile information anytime from the Profile → Edit Profile screen.' },
-        { subtitle: 'Data Portability', text: 'You can request a copy of all your data by contacting us at privacy@kisanmitra.app. We will provide it within 30 days.' },
+        { subtitle: 'Data Portability', text: 'You can request a copy of all your data by contacting us at privacy@KisanPlus.app. We will provide it within 30 days.' },
         { subtitle: 'Account Deletion', text: 'You can permanently delete your account and all associated data from Settings → Delete Account. This requires OTP verification for security.' },
         { subtitle: 'Notification Control', text: 'You can enable or disable specific notification types (weather, mandi, reminders) from Settings → Notifications at any time.' },
       ],
@@ -127,7 +127,7 @@ const SECTIONS: Record<string, any[]> = {
       id: '6', icon: 'document-text-outline', iconColor: '#1565C0', iconBg: '#E3F2FD',
       title: 'Children\'s Privacy',
       content: [
-        { subtitle: 'Age Requirement', text: 'Kisan Mitra is intended for farmers and agricultural workers aged 18 and above. We do not knowingly collect personal information from children under 18.' },
+        { subtitle: 'Age Requirement', text: 'Kisan Plus is intended for farmers and agricultural workers aged 18 and above. We do not knowingly collect personal information from children under 18.' },
       ],
     },
     {
@@ -183,7 +183,7 @@ const SECTIONS: Record<string, any[]> = {
       title: 'आपके अधिकार',
       content: [
         { subtitle: 'पहुंच और सुधार', text: 'आप किसी भी समय प्रोफ़ाइल → प्रोफ़ाइल संपादित करें स्क्रीन से अपनी प्रोफ़ाइल जानकारी देख और संपादित कर सकते हैं।' },
-        { subtitle: 'डेटा पोर्टेबिलिटी', text: 'आप privacy@kisanmitra.app पर हमसे संपर्क करके अपने सभी डेटा की प्रतिलिपि का अनुरोध कर सकते हैं। हम इसे 30 दिनों के भीतर प्रदान करेंगे।' },
+        { subtitle: 'डेटा पोर्टेबिलिटी', text: 'आप privacy@KisanPlus.app पर हमसे संपर्क करके अपने सभी डेटा की प्रतिलिपि का अनुरोध कर सकते हैं। हम इसे 30 दिनों के भीतर प्रदान करेंगे।' },
         { subtitle: 'खाता हटाना', text: 'आप सेटिंग्स → खाता हटाएँ से अपना खाता और सभी दर्ज डेटा को स्थायी रूप से हटा सकते हैं। सुरक्षा के लिए इसमें OTP सत्यापन की आवश्यकता होती है।' },
         { subtitle: 'सूचना नियंत्रण', text: 'आप किसी भी समय सेटिंग्स → सूचनाओं से विशिष्ट अधिसूचना प्रकारों (मौसम, मंडी, अनुस्मारक) को सक्षम या अक्षम कर सकते हैं।' },
       ],
@@ -192,7 +192,7 @@ const SECTIONS: Record<string, any[]> = {
       id: '6', icon: 'document-text-outline', iconColor: '#1565C0', iconBg: '#E3F2FD',
       title: 'बच्चों की गोपनीयता',
       content: [
-        { subtitle: 'आयु की आवश्यकता', text: 'किसान मित्र 18 वर्ष और उससे अधिक आयु के किसानों और कृषि श्रमिकों के लिए है। हम जानबूझकर 18 वर्ष से कम उम्र के बच्चों से व्यक्तिगत जानकारी एकत्र नहीं करते हैं।' },
+        { subtitle: 'आयु की आवश्यकता', text: 'किसान प्लस 18 वर्ष और उससे अधिक आयु के किसानों और कृषि श्रमिकों के लिए है। हम जानबूझकर 18 वर्ष से कम उम्र के बच्चों से व्यक्तिगत जानकारी एकत्र नहीं करते हैं।' },
       ],
     },
     {
@@ -248,7 +248,7 @@ const SECTIONS: Record<string, any[]> = {
       title: 'તમારા અધિકારો',
       content: [
         { subtitle: 'ઍક્સેસ અને સુધારણા', text: 'તમે કોઈપણ સમયે પ્રોફાઇલ → પ્રોફાઈલ સુધારો પર જઈને તમારી માહિતી જોઈ અને સંપાદિત કરી શકો છો.' },
-        { subtitle: 'ડેટા પોર્ટેબિલિટી', text: 'તમે privacy@kisanmitra.app પર અમારો સંપર્ક કરીને તમારા તમામ ડેટાની નકલ માંગી શકો છો. અમે 30 દિવસમાં તેને પૂરી પાડીશું.' },
+        { subtitle: 'ડેટા પોર્ટેબિલિટી', text: 'તમે privacy@KisanPlus.app પર અમારો સંપર્ક કરીને તમારા તમામ ડેટાની નકલ માંગી શકો છો. અમે 30 દિવસમાં તેને પૂરી પાડીશું.' },
         { subtitle: 'એકાઉન્ટ કાઢી નાખવું', text: 'તમે સેટિંગ્સ → એકાઉન્ટ કાઢી નાખોમાંથી તમારું એકાઉન્ટ કાયમ માટે રદ કરી શકો છો. આ ક્રિયા માટે OTP દ્વારા સુરક્ષા ચકાસણીની જરૂર પડે છે.' },
         { subtitle: 'નોટિફિકેશન કંટ્રોલ', text: 'તમે સેટિંગ્સ → સૂચનાઓમાંથી કોઈપણ સમયે ચોક્કસ પ્રકારની સૂચનાઓ (હવામાન, મંડી, રિમાઇન્ડર) ચાલુ અથવા બંધ કરી શકો છો.' },
       ],
@@ -257,7 +257,7 @@ const SECTIONS: Record<string, any[]> = {
       id: '6', icon: 'document-text-outline', iconColor: '#1565C0', iconBg: '#E3F2FD',
       title: 'બાળકોની ગોપનીયતા',
       content: [
-        { subtitle: 'ઉંમર લાયકાત', text: 'કિસાન મિત્ર 18 અને તેથી વધુ ઉંમરના ખેડૂતો માટે છે. અમે જાણીજોઈને 18 વર્ષથી ઓછી ઉંમરના બાળકોની વ્યક્તિગત માહિતી એકત્રિત કરતા નથી.' },
+        { subtitle: 'ઉંમર લાયકાત', text: 'કિસાન પ્લસ 18 અને તેથી વધુ ઉંમરના ખેડૂતો માટે છે. અમે જાણીજોઈને 18 વર્ષથી ઓછી ઉંમરના બાળકોની વ્યક્તિગત માહિતી એકત્રિત કરતા નથી.' },
       ],
     },
     {
@@ -374,7 +374,7 @@ export default function PrivacyPolicyScreen() {
           </View>
           <Text style={s.heroTitle}>{UI_TEXTS[currentLang]?.heroTitle}</Text>
           <Text style={s.heroSub}>
-            Kisan Mitra is built for Indian farmers. We are committed to protecting your personal data and being transparent about how we use it.
+            Kisan Plus is built for Indian farmers. We are committed to protecting your personal data and being transparent about how we use it.
           </Text>
           <View style={s.heroBadge}>
             <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.8)" />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -112,10 +112,12 @@ export default function Header({
         <View style={styles.leftBlock}>
           {/* Brand line */}
           <View style={styles.brandRow}>
-            <View style={styles.brandIcon}>
-              <Ionicons name="leaf" size={13} color={COLORS.primary} />
-            </View>
-            <Text style={styles.appName}>KisanSathi</Text>
+            <Image
+              source={require('../assets/images/logo/logo.png')}
+              style={styles.logoImg}
+              resizeMode="contain"
+            />
+            <Text style={styles.appName}>Kisan Plus</Text>
           </View>
           {/* Greeting */}
           <Text style={[styles.greeting, { color: theme.text }]}>{t('home.greeting', { name })}</Text>
@@ -284,6 +286,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FBF1',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: '#C8E6C9',
+  },
+  logoImg: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
   appName: {
     fontSize: 13,

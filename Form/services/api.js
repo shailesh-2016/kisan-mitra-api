@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ── Base URL ──────────────────────────────────────────────────────────────────
 // Local development: use your PC's local IP (e.g. http://192.168.x.x:5000)
-// Production: 'https://kisan-mitra-api-8ski.onrender.com'
+// Production: 'https://kisan-plus-api-8ski.onrender.com'
 const BASE_URL = 'https://kisan-mitra-api-8ski.onrender.com';
 
 const TOKEN_KEY = '@kisan_token';

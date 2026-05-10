@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   StatusBar, ActivityIndicator, RefreshControl, Linking,
@@ -100,7 +100,7 @@ async function geocodeMandi(market: string, district: string, state: string) {
     ]) {
       const r = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
-        { headers: { 'User-Agent': 'KisanMitraApp/1.0' } }
+        { headers: { 'User-Agent': 'KisanPlusApp/1.0' } }
       );
       const j = await r.json();
       if (j[0]) return { lat: parseFloat(j[0].lat), lng: parseFloat(j[0].lon) };

@@ -1,17 +1,17 @@
-{
+﻿{
   "expo": {
-    "name": "Kisan Mitra",
-    "slug": "kisan-mitra",
+    "name": "Kisan Plus",
+    "slug": "kisan-plus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "kisanmitra",
+    "scheme": "KisanPlus",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "description": "Kisan Mitra — Smart Farming App for Indian farmers. Get real-time mandi prices, weather alerts, government schemes, profit calculator, and AI crop doctor.",
+    "description": "Kisan Plus — Smart Farming App for Indian farmers. Get real-time mandi prices, weather alerts, government schemes, profit calculator, and AI crop doctor.",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.kisanmitra.app",
+      "bundleIdentifier": "com.KisanPlus.app",
       "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Used to find nearby mandis and get local weather",
@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "com.kisanmitra.app",
+      "package": "com.KisanPlus.app",
       "versionCode": 1,
       "permissions": [
         "ACCESS_FINE_LOCATION",

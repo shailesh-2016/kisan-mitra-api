@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router  = express.Router();
 
 // ── Privacy Policy ────────────────────────────────────────────────────────────
@@ -8,7 +8,7 @@ router.get('/privacy-policy', (req, res) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy Policy - Kisan Mitra</title>
+  <title>Privacy Policy - Kisan Plus</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.7; }
     h1 { color: #2E7D32; }
@@ -17,9 +17,9 @@ router.get('/privacy-policy', (req, res) => {
   </style>
 </head>
 <body>
-  <h1>Privacy Policy - Kisan Mitra</h1>
+  <h1>Privacy Policy - Kisan Plus</h1>
   <p><strong>Last updated:</strong> May 2026</p>
-  <p>Kisan Mitra is committed to protecting your privacy. This policy explains how we collect, use, and protect your information.</p>
+  <p>Kisan Plus is committed to protecting your privacy. This policy explains how we collect, use, and protect your information.</p>
   <h2>1. Information We Collect</h2>
   <ul>
     <li><strong>Mobile number:</strong> Used for OTP-based login.</li>
@@ -28,7 +28,7 @@ router.get('/privacy-policy', (req, res) => {
   </ul>
   <h2>2. How We Use Your Information</h2>
   <ul>
-    <li>To provide Kisan Mitra app services.</li>
+    <li>To provide Kisan Plus app services.</li>
     <li>To send OTP verification via SMS.</li>
     <li>To show mandi prices, weather, and government schemes.</li>
   </ul>
@@ -45,7 +45,7 @@ router.get('/privacy-policy', (req, res) => {
   <p>You can delete your account anytime from app Settings. All data is permanently removed within 30 days.</p>
   <h2>6. Contact</h2>
   <p>Email: <a href="mailto:support@kisanmitra.app">support@kisanmitra.app</a></p>
-  <p style="margin-top:40px;color:#888;font-size:13px;">2026 Kisan Mitra. All rights reserved.</p>
+  <p style="margin-top:40px;color:#888;font-size:13px;">2026 Kisan Plus. All rights reserved.</p>
 </body>
 </html>`;
   res.send(html);
@@ -58,7 +58,7 @@ router.get('/delete-account', (req, res) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Delete Account - Kisan Mitra</title>
+  <title>Delete Account - Kisan Plus</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; line-height: 1.7; }
     h1 { color: #C62828; }
@@ -69,7 +69,7 @@ router.get('/delete-account', (req, res) => {
   </style>
 </head>
 <body>
-  <h1>Delete Your Kisan Mitra Account</h1>
+  <h1>Delete Your Kisan Plus Account</h1>
   <p>You can permanently delete your account and all associated data at any time.</p>
   <div class="warning">
     <strong>Warning:</strong> Account deletion is permanent and cannot be undone.
@@ -77,7 +77,7 @@ router.get('/delete-account', (req, res) => {
   <h2>How to Delete Your Account</h2>
   <div class="steps">
     <ol>
-      <li>Open the Kisan Mitra app.</li>
+      <li>Open the Kisan Plus app.</li>
       <li>Go to Profile tab.</li>
       <li>Tap Settings.</li>
       <li>Scroll down and tap "Delete Account".</li>
@@ -97,7 +97,7 @@ router.get('/delete-account', (req, res) => {
   <p>All data is permanently removed from our servers within 30 days of deletion request.</p>
   <h2>Contact</h2>
   <p>Email: support@kisanmitra.app</p>
-  <p style="margin-top:40px;color:#888;font-size:13px;">2026 Kisan Mitra. All rights reserved.</p>
+  <p style="margin-top:40px;color:#888;font-size:13px;">2026 Kisan Plus. All rights reserved.</p>
 </body>
 </html>`;
   res.send(html);

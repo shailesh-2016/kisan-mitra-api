@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, StatusBar, Image, ActivityIndicator,
@@ -142,7 +142,7 @@ export default function ProfileScreen() {
                 ) : null}
                 <View style={styles.heroPill}>
                   <View style={styles.heroPillDot} />
-                  <Text style={styles.heroPillText}>Kisan Mitra Member</Text>
+                  <Text style={styles.heroPillText}>Kisan Plus Member</Text>
                 </View>
               </View>
             </View>
@@ -251,7 +251,7 @@ export default function ProfileScreen() {
                     <Ionicons name="leaf" size={20} color={COLORS.primary} />
                   </View>
                   <View>
-                    <Text style={[styles.appInfoName, { color: theme.text }]}>Kisan Mitra</Text>
+                    <Text style={[styles.appInfoName, { color: theme.text }]}>Kisan Plus</Text>
                     <Text style={[styles.appInfoVersion, { color: theme.textSecondary }]}>Version 1.0.0</Text>
                   </View>
                 </View>
@@ -360,7 +360,7 @@ export default function ProfileScreen() {
                     <Ionicons name="leaf" size={20} color={COLORS.primary} />
                   </View>
                   <View>
-                    <Text style={[styles.appInfoName, { color: theme.text }]}>Kisan Mitra</Text>
+                    <Text style={[styles.appInfoName, { color: theme.text }]}>Kisan Plus</Text>
                     <Text style={[styles.appInfoVersion, { color: theme.textSecondary }]}>Version 1.0.0</Text>
                   </View>
                 </View>

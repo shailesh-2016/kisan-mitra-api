@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Switch, Linking, Share, ActivityIndicator,
@@ -19,11 +19,11 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { userAPI } from '../services/api';
 
 const APP_VERSION   = '1.0.0';
-const APP_PACKAGE   = 'com.kisanmitra.app';
-const PRIVACY_URL   = 'https://kisanmitra.app/privacy';
-const TERMS_URL     = 'https://kisanmitra.app/terms';
-const SUPPORT_EMAIL = 'support@kisanmitra.app';
-const PLAY_STORE    = 'https://play.google.com/store/apps/details?id=com.kisanmitra.app';
+const APP_PACKAGE   = 'com.KisanPlus.app';
+const PRIVACY_URL   = 'https://KisanPlus.app/privacy';
+const TERMS_URL     = 'https://KisanPlus.app/terms';
+const SUPPORT_EMAIL = 'support@KisanPlus.app';
+const PLAY_STORE    = 'https://play.google.com/store/apps/details?id=com.KisanPlus.app';
 
 interface RowProps {
   icon: string; iconBg: string; iconColor: string;
@@ -136,7 +136,7 @@ export default function SettingsScreen() {
   };
 
   const handleShareApp = async () => {
-    try { await Share.share({ message: `${t('settings.shareMsg')} ${PLAY_STORE}`, title: 'Kisan Mitra' }); } catch {}
+    try { await Share.share({ message: `${t('settings.shareMsg')} ${PLAY_STORE}`, title: 'Kisan Plus' }); } catch {}
   };
 
   const initials = user?.name
@@ -295,13 +295,13 @@ export default function SettingsScreen() {
         {/* SUPPORT */}
         <Section title={t('settings.sectionSupport')}>
           <SettingRow icon="help-circle-outline" iconBg="#E3F2FD" iconColor="#1565C0"
-            label={t('settings.helpFaq')} onPress={() => openUrl('https://kisanmitra.app/help')} />
+            label={t('settings.helpFaq')} onPress={() => openUrl('https://KisanPlus.app/help')} />
           <SettingRow icon="chatbubble-outline" iconBg="#E8F5E9" iconColor="#2E7D32"
             label={t('settings.contactSupport')} sublabel={SUPPORT_EMAIL}
-            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Kisan Mitra Support`).catch(() => {})} />
+            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Kisan Plus Support`).catch(() => {})} />
           <SettingRow icon="bug-outline" iconBg="#FFF8E1" iconColor="#F57F17"
             label={t('settings.reportProblem')}
-            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Bug Report - Kisan Mitra v${APP_VERSION}`).catch(() => {})}
+            onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Bug Report - Kisan Plus v${APP_VERSION}`).catch(() => {})}
             isLast />
         </Section>
 
@@ -326,7 +326,7 @@ export default function SettingsScreen() {
             }
           />
           <SettingRow icon="code-slash-outline" iconBg="#F3E5F5" iconColor="#7B1FA2"
-            label={t('settings.developer')} sublabel="Kisan Mitra Team" />
+            label={t('settings.developer')} sublabel="Kisan Plus Team" />
           <SettingRow icon="share-social-outline" iconBg="#FFF8E1" iconColor="#F57F17"
             label={t('settings.shareApp')} onPress={handleShareApp} isLast />
         </Section>
