@@ -1,13 +1,40 @@
 const https = require('https');
+const fs    = require('fs');
+const path  = require('path');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const DATA_GOV_API_KEY = process.env.DATA_GOV_API_KEY || 'YOUR_DATA_GOV_API_KEY';
 const RESOURCE_ID      = '9ef84268-d588-465a-a308-a864a43d0070';
 const BASE_URL         = `https://api.data.gov.in/resource/${RESOURCE_ID}`;
 
-// ── Per-state cache ───────────────────────────────────────────────────────────
+// ── Cache: in-memory + disk persistence ──────────────────────────────────────
 const stateCache   = {};
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour in-memory TTL
+const DISK_DIR     = path.join('/tmp', 'mandi_cache');
+
+// Ensure cache dir exists
+try { fs.mkdirSync(DISK_DIR, { recursive: true }); } catch {}
+
+function diskPath(key) {
+  return path.join(DISK_DIR, `${key.replace(/[^a-z0-9]/gi, '_')}.json`);
+}
+
+function saveToDisk(key, data) {
+  try {
+    fs.writeFileSync(diskPath(key), JSON.stringify({ data, savedAt: Date.now() }));
+  } catch (e) {
+    console.warn('[Mandi] Disk save failed:', e.message);
+  }
+}
+
+function loadFromDisk(key) {
+  try {
+    const raw = fs.readFileSync(diskPath(key), 'utf8');
+    const obj = JSON.parse(raw);
+    if (obj?.data?.length > 0) return obj.data;
+  } catch {}
+  return null;
+}
 
 // ── Emoji map ─────────────────────────────────────────────────────────────────
 const EMOJI_MAP = {
@@ -38,7 +65,7 @@ function getCategory(commodity) {
 }
 
 // ── Single page fetch ─────────────────────────────────────────────────────────
-function fetchPage(state, limit, offset) {
+function fetchPage(state, limit, offset, district = '', market = '') {
   return new Promise((resolve, reject) => {
     const params = new URLSearchParams({
       'api-key': DATA_GOV_API_KEY,
@@ -46,10 +73,12 @@ function fetchPage(state, limit, offset) {
       limit:     String(limit),
       offset:    String(offset),
     });
-    if (state) params.append('filters[state]', state);
+    if (state)    params.append('filters[state]',    state);
+    if (district) params.append('filters[district]', district);
+    if (market)   params.append('filters[market]',   market);
 
     const url = `${BASE_URL}?${params.toString()}`;
-    console.log(`[Mandi] GET state=${state} limit=${limit} offset=${offset}`);
+    console.log(`[Mandi] GET state=${state} district=${district} market=${market} limit=${limit} offset=${offset}`);
 
     const req = https.get(url, (res) => {
       let raw = '';
@@ -64,20 +93,20 @@ function fetchPage(state, limit, offset) {
   });
 }
 
-// ── Fetch ALL pages for a state ───────────────────────────────────────────────
-async function fetchAllForState(state) {
+// ── Fetch ALL pages for given filters ─────────────────────────────────────────
+async function fetchAllPages(state, district = '', market = '') {
   const PAGE_SIZE = 500;
 
-  const first = await fetchPage(state, PAGE_SIZE, 0);
+  const first = await fetchPage(state, PAGE_SIZE, 0, district, market);
   if (!first.records || !Array.isArray(first.records) || first.records.length === 0) {
-    throw new Error('No records returned from API');
+    throw new Error(`No records returned from API for state=${state} district=${district}`);
   }
 
   const total      = parseInt(first.total || first.count || '0', 10) || first.records.length;
   const totalPages = Math.ceil(total / PAGE_SIZE);
   let allRecords   = [...first.records];
 
-  console.log(`[Mandi] state=${state} total=${total} pages=${totalPages}`);
+  console.log(`[Mandi] state=${state} district=${district} total=${total} pages=${totalPages}`);
 
   // Fetch remaining pages in batches of 4
   const BATCH = 4;
@@ -86,7 +115,7 @@ async function fetchAllForState(state) {
     const offsets = Array.from({ length: end - start }, (_, i) => (start + i) * PAGE_SIZE);
 
     const results = await Promise.allSettled(
-      offsets.map(o => fetchPage(state, PAGE_SIZE, o))
+      offsets.map(o => fetchPage(state, PAGE_SIZE, o, district, market))
     );
 
     for (const r of results) {
@@ -96,7 +125,7 @@ async function fetchAllForState(state) {
     }
   }
 
-  console.log(`[Mandi] Fetched ${allRecords.length} records for ${state}`);
+  console.log(`[Mandi] Fetched ${allRecords.length} total records`);
   return allRecords;
 }
 
@@ -128,37 +157,58 @@ function processRecords(records) {
     });
 }
 
-// ── Get or refresh cache for a state ─────────────────────────────────────────
-async function getStateData(state) {
-  const key = (state || 'all').toLowerCase();
+// ── Get or refresh cache for state/district/market ───────────────────────────
+async function getCachedData(state, district = '', market = '') {
+  const key = `${state}|${district}|${market}`.toLowerCase();
   const now = Date.now();
 
+  // 1. In-memory cache hit
   if (stateCache[key] && (now - stateCache[key].fetchedAt) < CACHE_TTL_MS) {
-    console.log(`[Mandi] Cache hit for ${state} (${stateCache[key].data.length} records)`);
+    console.log(`[Mandi] Memory cache hit: ${key} (${stateCache[key].data.length} records)`);
     return { data: stateCache[key].data, source: 'cache' };
   }
 
   try {
-    const raw       = await fetchAllForState(state);
+    const raw       = await fetchAllPages(state, district, market);
     const processed = processRecords(raw);
 
     if (processed.length === 0) {
-      console.warn(`[Mandi] 0 processed records for ${state}`);
-      // Return stale cache if available, else fallback
-      if (stateCache[key]?.data?.length > 0) {
-        return { data: stateCache[key].data, source: 'stale-cache' };
+      console.warn(`[Mandi] 0 records for ${key}, trying fallbacks`);
+      // Try disk cache first
+      const disk = loadFromDisk(key);
+      if (disk) { console.log(`[Mandi] Disk cache hit: ${key}`); return { data: disk, source: 'cached' }; }
+      // Try stale memory
+      if (stateCache[key]?.data?.length > 0) return { data: stateCache[key].data, source: 'stale-cache' };
+      // Try full state if district was specified
+      if (district) {
+        console.log(`[Mandi] No district data, falling back to full state: ${state}`);
+        return getCachedData(state, '', market);
       }
       return { data: FALLBACK, source: 'fallback' };
     }
 
+    // Save to memory + disk
     stateCache[key] = { data: processed, fetchedAt: now };
-    console.log(`[Mandi] Cached ${processed.length} records for ${state}`);
+    saveToDisk(key, processed);
+    console.log(`[Mandi] Cached ${processed.length} records for ${key}`);
     return { data: processed, source: 'live' };
+
   } catch (err) {
-    console.error(`[Mandi] fetchAllForState failed for ${state}: ${err.message}`);
-    if (stateCache[key]?.data?.length > 0) {
-      return { data: stateCache[key].data, source: 'stale-cache' };
+    console.error(`[Mandi] fetchAllPages failed for ${key}: ${err.message}`);
+
+    // Try disk cache (survives server restarts)
+    const disk = loadFromDisk(key);
+    if (disk) { console.log(`[Mandi] Using disk cache after error: ${key}`); return { data: disk, source: 'cached' }; }
+
+    // Try stale memory
+    if (stateCache[key]?.data?.length > 0) return { data: stateCache[key].data, source: 'stale-cache' };
+
+    // Try full state if district was specified
+    if (district) {
+      console.log(`[Mandi] Error with district, falling back to full state: ${state}`);
+      return getCachedData(state, '', market);
     }
+
     return { data: FALLBACK, source: 'fallback' };
   }
 }
@@ -166,14 +216,18 @@ async function getStateData(state) {
 // ── GET /api/mandi ────────────────────────────────────────────────────────────
 exports.getMandiPrices = async (req, res) => {
   try {
-    const { state = 'Gujarat', district, commodity } = req.query;
+    const { state = 'Gujarat', district = '', commodity = '', market = '' } = req.query;
 
-    const { data, source } = await getStateData(state);
+    // Fetch with API-level filters for efficiency
+    const { data, source } = await getCachedData(state, district, market);
 
+    // Apply commodity filter in memory (API doesn't support it well)
     let result = data;
-    if (district)  result = result.filter(r => r.district.toLowerCase().includes(district.toLowerCase()));
-    if (commodity) result = result.filter(r => r.commodity.toLowerCase().includes(commodity.toLowerCase()));
+    if (commodity) {
+      result = result.filter(r => r.commodity.toLowerCase().includes(commodity.toLowerCase()));
+    }
 
+    console.log(`[Mandi] Returning ${result.length} records (source: ${source})`);
     res.json({ success: true, source, count: result.length, data: result });
   } catch (err) {
     console.error('[Mandi] getMandiPrices error:', err.message);
@@ -185,7 +239,7 @@ exports.getMandiPrices = async (req, res) => {
 exports.getDistricts = async (req, res) => {
   try {
     const { state = 'Gujarat' } = req.query;
-    const { data } = await getStateData(state);
+    const { data } = await getCachedData(state);
     const districts = [...new Set(data.map(r => r.district).filter(Boolean))].sort();
     res.json({ success: true, districts });
   } catch (err) {

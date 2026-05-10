@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TextInput,
   TouchableOpacity, StatusBar, ActivityIndicator,
-  RefreshControl, Animated, Platform,
+  RefreshControl, Animated, Platform, KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -45,90 +46,183 @@ function DropdownSheet({ title, items, selected, onSelect, onClose }: {
 }) {
   const { theme } = useTheme();
   const [q, setQ] = useState('');
-  const list = items.filter(i => i.toLowerCase().includes(q.toLowerCase()));
-  const slideAnim = useRef(new Animated.Value(300)).current;
+  const inputRef = useRef<TextInput>(null);
+  const list = q.length > 0
+    ? items.filter(i => i.toLowerCase().includes(q.toLowerCase()))
+    : items;
+  const slideAnim = useRef(new Animated.Value(600)).current;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
       toValue: 0, useNativeDriver: true,
-      damping: 20, stiffness: 200,
-    }).start();
+      damping: 22, stiffness: 180, mass: 0.8,
+    }).start(() => {
+      // Auto-focus search after animation
+      setTimeout(() => inputRef.current?.focus(), 100);
+    });
   }, []);
 
   const close = () => {
+    Keyboard.dismiss();
     Animated.timing(slideAnim, {
-      toValue: 400, duration: 200, useNativeDriver: true,
+      toValue: 600, duration: 220, useNativeDriver: true,
     }).start(() => onClose());
   };
 
   return (
     <View style={ds.overlay}>
       <TouchableOpacity style={ds.backdrop} onPress={close} activeOpacity={1} />
-      <Animated.View style={[ds.sheet, { backgroundColor: theme.surface, transform: [{ translateY: slideAnim }] }]}>
-        <View style={[ds.handle, { backgroundColor: theme.border }]} />
-        <View style={ds.titleRow}>
-          <Text style={[ds.title, { color: theme.text }]}>{title}</Text>
-          <TouchableOpacity onPress={close} style={[ds.closeBtn, { backgroundColor: theme.inputBg }]}>
-            <Ionicons name="close" size={18} color={theme.textSecondary} />
-          </TouchableOpacity>
-        </View>
-        <View style={[ds.searchRow, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
-          <Ionicons name="search-outline" size={15} color={theme.textMuted} />
-          <TextInput
-            style={[ds.searchInput, { color: theme.text }]}
-            placeholder="Search..." value={q}
-            onChangeText={setQ} placeholderTextColor={theme.textMuted} autoFocus />
-          {q.length > 0 && (
-            <TouchableOpacity onPress={() => setQ('')}>
-              <Ionicons name="close-circle" size={15} color={theme.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-        <ScrollView style={ds.list} showsVerticalScrollIndicator={false}>
-          {list.map(item => (
-            <TouchableOpacity key={item}
-              style={[ds.item, { borderBottomColor: theme.borderLight }, item === selected && { backgroundColor: theme.primaryBg }]}
-              onPress={() => { onSelect(item); close(); }} activeOpacity={0.7}>
-              <Text style={[ds.itemTxt, { color: theme.textSecondary }, item === selected && { color: theme.primary, fontWeight: '700' }]}>
-                {item}
-              </Text>
-              {item === selected && (
-                <View style={[ds.checkCircle, { backgroundColor: theme.primary }]}>
-                  <Ionicons name="checkmark" size={12} color="#fff" />
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-          {list.length === 0 && (
-            <View style={ds.noResultWrap}>
-              <Ionicons name="search-outline" size={32} color={theme.border} />
-              <Text style={[ds.noResult, { color: theme.textMuted }]}>No results found</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={ds.kavWrapper}
+      >
+        <Animated.View style={[ds.sheet, { backgroundColor: theme.surface, transform: [{ translateY: slideAnim }] }]}>
+          {/* Drag handle */}
+          <View style={ds.handleWrap}>
+            <View style={[ds.handle, { backgroundColor: theme.border }]} />
+          </View>
+
+          {/* Header */}
+          <View style={ds.titleRow}>
+            <View style={ds.titleLeft}>
+              <Ionicons
+                name={title.toLowerCase().includes('state') ? 'map-outline' : 'business-outline'}
+                size={20} color={theme.primary}
+              />
+              <Text style={[ds.title, { color: theme.text }]}>{title}</Text>
             </View>
-          )}
-          <View style={{ height: 32 }} />
-        </ScrollView>
-      </Animated.View>
+            <TouchableOpacity onPress={close} style={[ds.closeBtn, { backgroundColor: theme.inputBg }]} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={18} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search bar */}
+          <View style={[ds.searchRow, { backgroundColor: theme.inputBg, borderColor: selected ? theme.primary : theme.border }]}>
+            <Ionicons name="search-outline" size={16} color={theme.primary} />
+            <TextInput
+              ref={inputRef}
+              style={[ds.searchInput, { color: theme.text }]}
+              placeholder={`Search ${title.toLowerCase()}...`}
+              value={q}
+              onChangeText={setQ}
+              placeholderTextColor={theme.textMuted}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+            {q.length > 0 && Platform.OS === 'android' && (
+              <TouchableOpacity onPress={() => setQ('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={16} color={theme.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Count badge */}
+          <View style={ds.countRow}>
+            <Text style={[ds.countTxt, { color: theme.textMuted }]}>
+              {list.length} {list.length === 1 ? 'result' : 'results'}
+            </Text>
+            {selected ? (
+              <View style={[ds.selectedBadge, { backgroundColor: theme.primaryBg }]}>
+                <Ionicons name="checkmark-circle" size={12} color={theme.primary} />
+                <Text style={[ds.selectedBadgeTxt, { color: theme.primary }]}>{selected}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* List */}
+          <ScrollView
+            style={ds.list}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {list.map(item => {
+              const isSelected = item === selected;
+              return (
+                <TouchableOpacity
+                  key={item}
+                  style={[
+                    ds.item,
+                    { borderBottomColor: theme.borderLight },
+                    isSelected && { backgroundColor: theme.primaryBg },
+                  ]}
+                  onPress={() => { onSelect(item); close(); }}
+                  activeOpacity={0.65}
+                >
+                  <View style={ds.itemLeft}>
+                    <View style={[ds.itemDot, { backgroundColor: isSelected ? theme.primary : theme.border }]} />
+                    <Text style={[
+                      ds.itemTxt,
+                      { color: theme.text },
+                      isSelected && { color: theme.primary, fontWeight: '700' },
+                    ]}>
+                      {item}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <View style={[ds.checkCircle, { backgroundColor: theme.primary }]}>
+                      <Ionicons name="checkmark" size={13} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            {list.length === 0 && (
+              <View style={ds.noResultWrap}>
+                <Ionicons name="search-outline" size={40} color={theme.border} />
+                <Text style={[ds.noResult, { color: theme.text }]}>No results for "{q}"</Text>
+                <Text style={[ds.noResultSub, { color: theme.textMuted }]}>Try a different spelling</Text>
+              </View>
+            )}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 const ds = StyleSheet.create({
-  overlay:     { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 },
-  backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '75%', paddingHorizontal: 20, paddingBottom: 40 },
-  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB', alignSelf: 'center', marginTop: 12, marginBottom: 4 },
-  titleRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
-  title:       { fontSize: 17, fontWeight: '800', color: '#111827', letterSpacing: -0.3 },
-  closeBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
-  searchRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F9FAFB', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' },
-  searchInput: { flex: 1, fontSize: 14, color: '#111827', padding: 0 },
-  list:        { maxHeight: 420 },
-  item:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F9FAFB' },
-  itemActive:  { backgroundColor: '#F0FBF1', marginHorizontal: -20, paddingHorizontal: 20, borderRadius: 0 },
-  itemTxt:     { fontSize: 14, color: '#374151', fontWeight: '500' },
-  itemTxtActive: { color: COLORS.primary, fontWeight: '700' },
-  checkCircle: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
-  noResultWrap:{ alignItems: 'center', paddingVertical: 32, gap: 8 },
-  noResult:    { fontSize: 14, color: '#9CA3AF', fontWeight: '500' },
+  overlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 },
+  backdrop:     { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
+  kavWrapper:   { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  sheet:        {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    maxHeight: '88%',
+    paddingHorizontal: 20, paddingBottom: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12, shadowRadius: 20, elevation: 20,
+  },
+  handleWrap:   { alignItems: 'center', paddingTop: 12, paddingBottom: 4 },
+  handle:       { width: 40, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB' },
+  titleRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
+  titleLeft:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title:        { fontSize: 18, fontWeight: '800', color: '#111827', letterSpacing: -0.3 },
+  closeBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
+  searchRow:    {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#F9FAFB', borderRadius: 16,
+    paddingHorizontal: 14, paddingVertical: 13,
+    marginBottom: 8, borderWidth: 1.5, borderColor: '#E5E7EB',
+  },
+  searchInput:  { flex: 1, fontSize: 15, color: '#111827', padding: 0 },
+  countRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, paddingHorizontal: 2 },
+  countTxt:     { fontSize: 12, color: '#9CA3AF', fontWeight: '500' },
+  selectedBadge:{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  selectedBadgeTxt: { fontSize: 11, fontWeight: '700' },
+  list:         { maxHeight: 480 },
+  item:         {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 16, paddingHorizontal: 4,
+    borderBottomWidth: 1, borderBottomColor: '#F9FAFB',
+    minHeight: 52,
+  },
+  itemLeft:     { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  itemDot:      { width: 8, height: 8, borderRadius: 4 },
+  itemTxt:      { fontSize: 15, color: '#374151', fontWeight: '500', flex: 1 },
+  checkCircle:  { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  noResultWrap: { alignItems: 'center', paddingVertical: 48, gap: 10 },
+  noResult:     { fontSize: 15, color: '#374151', fontWeight: '600' },
+  noResultSub:  { fontSize: 13, color: '#9CA3AF' },
 });
 
 // ── Mandi Card ────────────────────────────────────────────────────────────────
@@ -509,46 +603,47 @@ export default function MarketScreen() {
         <View style={s.filterRow}>
           {/* State selector */}
           <TouchableOpacity
-            style={[s.filterChip, { backgroundColor: theme.primaryBg, borderColor: theme.primary }, selectedState && s.filterChipActive]}
-            onPress={() => setOpenDropdown('state')} activeOpacity={0.8}>
-            <Ionicons name="map-outline" size={13}
-              color={selectedState ? '#fff' : theme.primary} />
-            <Text style={[s.filterChipTxt, { color: theme.primary }, selectedState && s.filterChipTxtActive]}
-              numberOfLines={1}>
+            style={[s.filterChip, { backgroundColor: selectedState ? theme.primary : theme.primaryBg, borderColor: theme.primary }]}
+            onPress={() => setOpenDropdown('state')}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="map-outline" size={14} color={selectedState ? '#fff' : theme.primary} />
+            <Text style={[s.filterChipTxt, { color: selectedState ? '#fff' : theme.primary }]} numberOfLines={1}>
               {selectedState || tl('State')}
             </Text>
-            <Ionicons name="chevron-down" size={12}
+            <Ionicons name={openDropdown === 'state' ? 'chevron-up' : 'chevron-down'} size={13}
               color={selectedState ? 'rgba(255,255,255,0.8)' : theme.primary} />
           </TouchableOpacity>
 
-          {/* District selector */}
-          {selectedState !== '' && (
-            <TouchableOpacity
-              style={[s.filterChip, { backgroundColor: theme.primaryBg, borderColor: theme.primary },
-                selectedDistrict && s.filterChipActive,
-                loading && !selectedDistrict && { backgroundColor: theme.inputBg, borderColor: theme.border }]}
-              onPress={() => districts.length > 0 ? setOpenDropdown('district') : undefined}
-              activeOpacity={0.8}>
-              {loading && !selectedDistrict
-                ? <ActivityIndicator size={12} color={theme.primary} />
-                : <Ionicons name="business-outline" size={13}
-                    color={selectedDistrict ? '#fff' : theme.primary} />
-              }
-              <Text style={[s.filterChipTxt, { color: theme.primary }, selectedDistrict && s.filterChipTxtActive]}
-                numberOfLines={1}>
-                {selectedDistrict || tl('District')}
-              </Text>
-              {!loading && (
-                <Ionicons name="chevron-down" size={12}
-                  color={selectedDistrict ? 'rgba(255,255,255,0.8)' : theme.primary} />
-              )}
-            </TouchableOpacity>
-          )}
+          {/* District selector — show even without state for better UX */}
+          <TouchableOpacity
+            style={[
+              s.filterChip,
+              { backgroundColor: selectedDistrict ? theme.primary : theme.primaryBg, borderColor: theme.primary },
+              !selectedState && { opacity: 0.5 },
+            ]}
+            onPress={() => {
+              if (!selectedState) return;
+              if (districts.length > 0) setOpenDropdown('district');
+            }}
+            activeOpacity={0.75}
+            disabled={!selectedState}
+          >
+            {loading && selectedState && !selectedDistrict
+              ? <ActivityIndicator size={13} color={selectedDistrict ? '#fff' : theme.primary} />
+              : <Ionicons name="business-outline" size={14} color={selectedDistrict ? '#fff' : theme.primary} />
+            }
+            <Text style={[s.filterChipTxt, { color: selectedDistrict ? '#fff' : theme.primary }]} numberOfLines={1}>
+              {selectedDistrict || tl('District')}
+            </Text>
+            <Ionicons name={openDropdown === 'district' ? 'chevron-up' : 'chevron-down'} size={13}
+              color={selectedDistrict ? 'rgba(255,255,255,0.8)' : theme.primary} />
+          </TouchableOpacity>
 
           {/* Clear button */}
           {hasFilters && (
-            <TouchableOpacity style={s.clearChip} onPress={clearFilters} activeOpacity={0.8}>
-              <Ionicons name="close" size={13} color="#EF4444" />
+            <TouchableOpacity style={s.clearChip} onPress={clearFilters} activeOpacity={0.75}>
+              <Ionicons name="close-circle" size={15} color="#EF4444" />
               <Text style={s.clearChipTxt}>Clear</Text>
             </TouchableOpacity>
           )}
@@ -708,10 +803,9 @@ const s = StyleSheet.create({
   },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 20, backgroundColor: '#F0FBF1',
-    borderWidth: 1.5, borderColor: COLORS.primary,
-    maxWidth: 140,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: 22, borderWidth: 1.5,
+    minHeight: 42,
   },
   filterChipActive: {
     backgroundColor: COLORS.primary, borderColor: COLORS.primary,
@@ -720,16 +814,17 @@ const s = StyleSheet.create({
     backgroundColor: '#F9FAFB', borderColor: '#E5E7EB',
   },
   filterChipTxt: {
-    fontSize: 12, fontWeight: '700', color: COLORS.primary, flex: 1,
+    fontSize: 13, fontWeight: '700', flex: 1, maxWidth: 100,
   },
   filterChipTxtActive: { color: '#fff' },
   clearChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 8,
-    borderRadius: 20, backgroundColor: '#FEF2F2',
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderRadius: 22, backgroundColor: '#FEF2F2',
     borderWidth: 1.5, borderColor: '#FECACA',
+    minHeight: 42,
   },
-  clearChipTxt: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
+  clearChipTxt: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
   countBadge: {
     marginLeft: 'auto' as any,
     backgroundColor: '#F3F4F6', borderRadius: 20,
