@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Image, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +39,7 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
   const { t }  = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDark, toggleTheme } = useTheme();
 
   const [weather, setWeather] = useState<WeatherData | null>(_weatherCache);
   const [loading, setLoading] = useState(!_weatherCache);
@@ -104,355 +104,277 @@ export default function Header({
     : '—';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.headerBg, borderBottomColor: theme.border }]}>
-      {/* ── Row 1: Logo+Greeting LEFT | Actions RIGHT ── */}
-      <View style={styles.row1}>
-
-        {/* Left: leaf icon + app name + greeting + location stacked */}
-        <View style={styles.leftBlock}>
-          {/* Brand line */}
-          <View style={styles.brandRow}>
-            <Image
-              source={require('../assets/images/logo/logo.png')}
-              style={styles.logoImg}
-              resizeMode="contain"
-            />
-            <Text style={styles.appName}>Kisan Plus</Text>
-          </View>
-          {/* Greeting */}
-          <Text style={[styles.greeting, { color: theme.text }]}>{t('home.greeting', { name })}</Text>
-          {/* Location */}
-          <View style={styles.locationRow}>
-            <Ionicons name="location-sharp" size={11} color={COLORS.primary} />
-            <Text style={[styles.location, { color: theme.textSecondary }]}>
-              {location ?? (weather?.cityName || t('home.location'))}
-            </Text>
-          </View>
+    <View style={[styles.container, { backgroundColor: theme.headerBg }]}>
+      {/* ── Top Bar: Logo & Actions ── */}
+      <View style={styles.topBar}>
+        <View style={styles.brand}>
+          <Image
+            source={require('../assets/images/logo/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.brandTitle}>Kisan Plus</Text>
         </View>
 
-        {/* Right: actions + avatar */}
-        <View style={styles.rightBlock}>
-          <View style={styles.actions}>
-            {/* Assistant pill */}
-            <TouchableOpacity style={styles.assistantPill} activeOpacity={0.85}>
-              <Ionicons name="sparkles" size={12} color={COLORS.primary} />
-              <Text style={styles.assistantTxt}>AI</Text>
-            </TouchableOpacity>
-
-            {/* Notification */}
-            <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]}
-              onPress={() => router.push('/notifications')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="notifications-outline" size={19} color="#374151" />
-              {unreadCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Avatar below actions */}
-          <TouchableOpacity style={styles.avatar} activeOpacity={0.8}>
-            <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
-            <View style={styles.onlineDot} />
+        <View style={styles.topActions}>
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]} 
+            onPress={toggleTheme}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={isDark ? "sunny" : "moon"} size={18} color={isDark ? "#F59E0B" : "#1A1A2E"} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]} 
+            onPress={() => router.push('/notifications')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={20} color="#374151" />
+            {unreadCount > 0 && <View style={styles.notifDot} />}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileBtn} activeOpacity={0.7}>
+            <View style={[styles.avatarWrap, { backgroundColor: theme.primaryBg }]}>
+              <Text style={[styles.avatarText, { color: theme.primary }]}>{name.charAt(0).toUpperCase()}</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── Row 2: Weather strip ── */}
-      {loading ? (
-        /* Skeleton while loading */
-        <Animated.View style={[styles.weatherStrip, { backgroundColor: theme.inputBg, borderColor: theme.border }, { opacity: pulse }]}>
-          <View style={styles.skeletonItem}>
-            <View style={[styles.weatherIconWrap, styles.skeletonBox]} />
-            <View style={styles.skeletonText}>
-              <View style={styles.skeletonLine1} />
-              <View style={styles.skeletonLine2} />
-            </View>
+      {/* ── Welcome & Weather Summary ── */}
+      <View style={styles.heroRow}>
+        <View style={styles.welcomeBlock}>
+          <Text style={[styles.welcomeText, { color: theme.textSecondary }]}>{t('home.hello', { defaultValue: 'Hello,' })}</Text>
+          <Text style={[styles.userName, { color: theme.text }]}>{name || t('home.farmer')}</Text>
+          <View style={styles.locPill}>
+            <Ionicons name="location" size={10} color={COLORS.primary} />
+            <Text style={styles.locText} numberOfLines={1}>{location ?? (weather?.cityName || t('home.location'))}</Text>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.skeletonItem}>
-            <View style={[styles.weatherIconWrap, styles.skeletonBox]} />
-            <View style={styles.skeletonText}>
-              <View style={styles.skeletonLine1} />
-              <View style={styles.skeletonLine2} />
-            </View>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.skeletonItem}>
-            <View style={[styles.weatherIconWrap, styles.skeletonBox]} />
-            <View style={styles.skeletonText}>
-              <View style={styles.skeletonLine1} />
-              <View style={styles.skeletonLine2} />
-            </View>
-          </View>
-        </Animated.View>
-      ) : (
-        <TouchableOpacity
-          style={[styles.weatherStrip, { backgroundColor: theme.inputBg, borderColor: theme.border }]}
-          onPress={() => router.push('/weather' as any)}
-          activeOpacity={0.88}
-        >
-          {/* Temperature */}
-          <View style={styles.weatherItem}>
-            <View style={[styles.weatherIconWrap, { backgroundColor: iconBg }]}>
-              <Ionicons name={iconName as any} size={16} color={iconColor} />
+        </View>
+
+        {/* Weather Card Mini */}
+        {!loading && weather && (
+          <TouchableOpacity 
+            style={[styles.weatherCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={() => router.push('/weather' as any)}
+            activeOpacity={0.9}
+          >
+            <View style={[styles.weatherIconCirc, { backgroundColor: iconBg }]}>
+              <Ionicons name={iconName as any} size={20} color={iconColor} />
             </View>
             <View>
-              <Text style={[styles.weatherVal, { color: theme.text }]}>
-                {weather ? `${weather.temp}°C` : '—'}
-              </Text>
-              <Text style={[styles.weatherLbl, { color: theme.textSecondary }]}>{condLabel}</Text>
+              <Text style={[styles.heroTemp, { color: theme.text }]}>{weather.temp}°C</Text>
+              <Text style={styles.heroCond} numberOfLines={1}>{condLabel}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
+        )}
+      </View>
 
-          <View style={styles.divider} />
-
-          {/* Humidity */}
-          <View style={styles.weatherItem}>
-            <View style={[styles.weatherIconWrap, { backgroundColor: '#EFF6FF' }]}>
-              <Ionicons name="water" size={14} color="#3B82F6" />
-            </View>
-            <View>
-              <Text style={[styles.weatherVal, { color: theme.text }]}>
-                {weather ? `${weather.humidity}%` : '—'}
-              </Text>
-              <Text style={[styles.weatherLbl, { color: theme.textSecondary }]}>{t('weather.humidity')}</Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Wind */}
-          <View style={styles.weatherItem}>
-            <View style={[styles.weatherIconWrap, { backgroundColor: '#F0FDF4' }]}>
-              <Ionicons name="leaf" size={14} color="#16A34A" />
-            </View>
-            <View>
-              <Text style={[styles.weatherVal, { color: theme.text }]}>
-                {weather ? `${weather.windSpeed} km/h` : '—'}
-              </Text>
-              <Text style={[styles.weatherLbl, { color: theme.textSecondary }]}>{t('weather.wind')}</Text>
-            </View>
-          </View>
-
-          {/* Tap indicator */}
-          <Ionicons name="chevron-forward" size={14} color="#D1D5DB" style={{ marginLeft: 2 }} />
-        </TouchableOpacity>
-      )}
+      <View style={styles.bottomRow}>
+        <View style={styles.weatherDetailsRow}>
+          {loading ? (
+             <View style={styles.skeletonStrip}>
+               <View style={[styles.skeletonPill, { backgroundColor: theme.inputBg }]} />
+               <View style={[styles.skeletonPill, { backgroundColor: theme.inputBg }]} />
+               <View style={[styles.skeletonPill, { backgroundColor: theme.inputBg }]} />
+             </View>
+          ) : (
+            <>
+              <View style={[styles.detailPill, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
+                <Ionicons name="water-outline" size={13} color="#3B82F6" />
+                <Text style={[styles.detailText, { color: theme.text }]}>{weather?.humidity}% {t('weather.hum_short', { defaultValue: 'Hum' })}</Text>
+              </View>
+              <View style={[styles.detailPill, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
+                <Ionicons name="leaf-outline" size={13} color="#16A34A" />
+                <Text style={[styles.detailText, { color: theme.text }]}>{weather?.windSpeed} km/h</Text>
+              </View>
+              <View style={[styles.detailPill, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
+                <Ionicons name="sunny-outline" size={13} color="#F59E0B" />
+                <Text style={[styles.detailText, { color: theme.text }]}>UV Low</Text>
+              </View>
+            </>
+          )}
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: SPACING.sm + 2,
-    paddingBottom: SPACING.sm + 4,
-    paddingHorizontal: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingTop: Platform.OS === 'ios' ? 10 : 15,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 15,
+    elevation: 8,
+    zIndex: 100,
   },
-
-  // ── Row 1: left block + right block ──
-  row1: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
   },
-
-  // Left: brand + greeting + location
-  leftBlock: {
-    flex: 1,
-    gap: 2,
-  },
-  brandRow: {
+  brand: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginBottom: 3,
+    gap: 12,
   },
-  brandIcon: {
-    width: 22, height: 22, borderRadius: 7,
-    backgroundColor: '#F0FBF1',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#C8E6C9',
-  },
-  logoImg: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-  },
-  appName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.primary,
-    letterSpacing: 0.2,
-  },
-  greeting: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#111827',
-    letterSpacing: -0.4,
-    lineHeight: 26,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 2,
-  },
-  location: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-
-  // Right: actions + avatar
-  rightBlock: {
-    alignItems: 'flex-end',
-    gap: 8,
-    marginLeft: 12,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  assistantPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F0FBF1',
-    borderRadius: RADIUS.full,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
-  },
-  assistantTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: '#F9FAFB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: 3, right: 3,
-    minWidth: 14, height: 14,
-    borderRadius: 7,
-    backgroundColor: '#EF4444',
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 2,
-    borderWidth: 1.5, borderColor: '#FFFFFF',
-  },
-  badgeText: {
-    fontSize: 8, color: '#FFFFFF', fontWeight: '800',
-  },
-  avatar: {
-    width: 38, height: 38,
-    borderRadius: 12,
-    backgroundColor: '#DCFCE7',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#BBF7D0',
-    position: 'relative',
-  },
-  avatarText: {
-    fontSize: 15, fontWeight: '800', color: COLORS.primary,
-  },
-  onlineDot: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 9, height: 9, borderRadius: 5,
-    backgroundColor: '#4ADE80',
-    borderWidth: 2, borderColor: '#FFFFFF',
-  },
-
-  // Unused row2 kept for compat
-  row2: {},
-
-  // Row 3 — weather strip
-  weatherStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+  logo: {
+    width: 48,
+    height: 48,
     borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 4,
+    borderWidth: 1.5,
+    borderColor: '#E8F5E9',
+    backgroundColor: '#FFFFFF',
   },
-  weatherItem: {
+  brandTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: COLORS.primary,
+    letterSpacing: -0.6,
+  },
+  topActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    flex: 1,
+    gap: 10,
   },
-  weatherIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
+  actionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
-  weatherVal: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  weatherLbl: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    marginTop: 1,
-  },
-  divider: {
-    width: 1,
-    height: 28,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 4,
-  },
-  // Skeleton
-  skeletonItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    flex: 1,
-  },
-  skeletonBox: {
-    backgroundColor: '#E5E7EB',
-  },
-  skeletonText: {
-    gap: 5,
-  },
-  skeletonLine1: {
-    width: 36,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#E5E7EB',
-  },
-  skeletonLine2: {
-    width: 28,
+  notifDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  profileBtn: {
+    marginLeft: 2,
+  },
+  avatarWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(27, 94, 32, 0.1)',
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  heroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 16,
+  },
+  welcomeBlock: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  locPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(27, 94, 32, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    gap: 4,
+    maxWidth: 160,
+  },
+  locText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  weatherCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  weatherIconCirc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTemp: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  heroCond: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
+    textTransform: 'capitalize',
+  },
+  bottomRow: {
+    marginTop: 4,
+  },
+  weatherDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  detailPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  detailText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  skeletonStrip: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  skeletonPill: {
+    width: 100,
+    height: 38,
+    borderRadius: 16,
+    opacity: 0.6,
   },
 });

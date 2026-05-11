@@ -1,4 +1,4 @@
-﻿{
+{
   "auth": {
     "tagline": "स्मार्ट खेती, बेहतर कमाई",
     "mobileNumber": "मोबाइल नंबर",
@@ -278,15 +278,14 @@
     "weather": "मौसम",
     "govt": "सरकारी योजना",
     "profit": "नफा कैलकुलेटर",
-    "reminder": "Smart Reminder",
+    "machine": "मशीन ट्रैकर",
+    "reminder": "स्मार्ट रिमाइंडर",
     "reminderDesc": "काम रिमाइंडर",
     "mandiDesc": "ताजा भाव देखो",
     "weatherDescShort": "आज का मौसम",
     "govtDesc": "नई योजनाएं",
     "profitDesc": "कमाई अनुमान",
     "machineDesc": "उपयोग ट्रैक करें",
-    "reminder": "स्मार्ट रिमाइंडर",
-    "reminderDesc": "काम रिमाइंडर",
     "quickActions": "त्वरित कार्य",
     "scanCrop": "फसल स्कैन करो",
     "aiDoctor": "AI डॉक्टर",

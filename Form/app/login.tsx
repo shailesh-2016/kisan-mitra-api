@@ -30,7 +30,9 @@ export default function LoginScreen() {
     router.push({ pathname: '/otp', params: { mobile, mode: 'login' } } as any);
     
     // Trigger OTP in background
-    authAPI.sendOtp(mobile).finally(() => {
+    authAPI.sendOtp(mobile).catch(err => {
+      console.log('Background OTP send error:', err.message);
+    }).finally(() => {
       setLoading(false);
     });
   };

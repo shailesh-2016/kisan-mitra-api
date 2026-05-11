@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, StatusBar, Image, ActivityIndicator,
@@ -16,14 +16,6 @@ import { useAuth } from '../../context/AuthContext';
 
 // ── Menu groups (only shown when logged in) ───────────────────────────────────
 const MENU_GROUPS = [
-  {
-    groupKey: 'farm',
-    items: [
-      { id: '1', icon: 'leaf',        key: 'myCrops',    badge: null, iconBg: '#E8F5E9', iconColor: '#2E7D32' },
-      { id: '2', icon: 'cart',        key: 'myOrders',   badge: null, iconBg: '#E3F2FD', iconColor: '#1565C0' },
-      { id: '3', icon: 'stats-chart', key: 'myEarnings', badge: null, iconBg: '#F3E5F5', iconColor: '#7B1FA2' },
-    ],
-  },
   {
     groupKey: 'support',
     items: [

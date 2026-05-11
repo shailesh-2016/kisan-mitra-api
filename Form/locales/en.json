@@ -1,4 +1,4 @@
-﻿{
+{
   "auth": {
     "tagline": "Smart Farming, Better Income",
     "mobileNumber": "Mobile Number",
@@ -278,6 +278,7 @@
     "weather": "Weather",
     "govt": "Govt Schemes",
     "profit": "Profit Calculator",
+    "machine": "Machine Tracker",
     "reminder": "Smart Reminder",
     "reminderDesc": "Task reminders",
     "mandiDesc": "Check latest rates",

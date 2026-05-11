@@ -73,7 +73,9 @@ export default function RegisterScreen() {
     // Navigate immediately
     router.push({ pathname: '/otp', params: { mobile } } as any);
     // Register in background
-    authAPI.register(name, mobile, village).finally(() => {
+    authAPI.register(name, mobile, village).catch(err => {
+      console.log('Background registration error:', err.message);
+    }).finally(() => {
       setLoading(false);
     });
   };
