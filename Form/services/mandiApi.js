@@ -1,4 +1,6 @@
-﻿// ── Data.gov.in Mandi Price API ───────────────────────────────────────────────
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// ── Data.gov.in Mandi Price API ───────────────────────────────────────────────
 const API_KEY     = '579b464db66ec23bdd000001052c14f0ffe34a0078f211bcb66705d8';
 const RESOURCE_ID = '9ef84268-d588-465a-a308-a864a43d0070';
 const BASE        = `https://api.data.gov.in/resource/${RESOURCE_ID}`;
@@ -141,14 +143,29 @@ async function fetchPage({ state = '', district = '', market = '', limit = 500, 
 
 async function fetchAllPages({ state = '', district = '', market = '' } = {}) {
   const cacheKey = `${state}|${district}|${market}`.toLowerCase();
+  const storageKey = `@mandi_${cacheKey}`;
+
+  // 1. In-memory cache (fastest)
   if (_cache[cacheKey] && Date.now() - _cache[cacheKey].at < TTL) {
     return { data: _cache[cacheKey].data, source: 'cache' };
   }
+
   try {
     const first = await fetchPage({ state, district, market, limit: 500, offset: 0 });
     if (!first.records || !Array.isArray(first.records) || first.records.length === 0) {
+      // No live data — try persistent storage
+      const stored = await AsyncStorage.getItem(storageKey).catch(() => null);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.data?.length > 0) {
+          console.log(`[Mandi] Using stored data for ${cacheKey} (${parsed.data.length} records)`);
+          _cache[cacheKey] = { data: parsed.data, at: Date.now() - TTL + 5 * 60 * 1000 }; // keep 5 min
+          return { data: parsed.data, source: 'stored' };
+        }
+      }
       return { data: [], source: 'empty' };
     }
+
     const total      = parseInt(first.total || first.count || '0', 10) || first.records.length;
     const pageSize   = 500;
     const totalPages = Math.ceil(total / pageSize);
@@ -168,14 +185,33 @@ async function fetchAllPages({ state = '', district = '', market = '' } = {}) {
       .filter(r => (r.commodity || r.Commodity || '').trim().length > 0)
       .map(mapRecord)
       .filter((r, idx, arr) => {
-        // Remove duplicates: same commodity + market + variety
         const key = `${r.commodity}|${r.market}|${r.variety}`.toLowerCase();
         return arr.findIndex(x => `${x.commodity}|${x.market}|${x.variety}`.toLowerCase() === key) === idx;
       });
-    console.log(`[Mandi] Fetched ${all.length} raw → ${processed.length} unique records for ${state||district||market||'all'}`);
+
+    console.log(`[Mandi] Fetched ${all.length} raw → ${processed.length} unique records for ${cacheKey}`);
+
+    // Save to memory + persistent storage
     _cache[cacheKey] = { data: processed, at: Date.now() };
+    AsyncStorage.setItem(storageKey, JSON.stringify({ data: processed, savedAt: Date.now() })).catch(() => {});
+
     return { data: processed, source: 'live' };
   } catch (err) {
+    console.warn(`[Mandi] fetchAllPages error for ${cacheKey}:`, err?.message);
+
+    // Try persistent storage on error
+    try {
+      const stored = await AsyncStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.data?.length > 0) {
+          console.log(`[Mandi] Using stored data after error for ${cacheKey}`);
+          _cache[cacheKey] = { data: parsed.data, at: Date.now() - TTL + 5 * 60 * 1000 };
+          return { data: parsed.data, source: 'stored' };
+        }
+      }
+    } catch {}
+
     if (_cache[cacheKey]?.data) return { data: _cache[cacheKey].data, source: 'stale-cache' };
     return { data: [], source: 'error' };
   }

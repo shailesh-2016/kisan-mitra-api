@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, StatusBar, KeyboardAvoidingView, Platform,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -62,11 +63,16 @@ export default function OtpScreen() {
   const { mobile } = useLocalSearchParams<{ mobile: string }>();
   const { setUser } = useAuth();
 
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendSec, setResendSec] = useState(30);
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const hiddenInputRef = useRef<TextInput>(null);
   const { theme } = useTheme();
+
+  // Focus input on mount
+  useEffect(() => {
+    setTimeout(() => hiddenInputRef.current?.focus(), 500);
+  }, []);
 
   // Countdown timer
   useEffect(() => {
@@ -75,26 +81,11 @@ export default function OtpScreen() {
     return () => clearInterval(timer);
   }, [resendSec]);
 
-  const handleChange = (val: string, idx: number) => {
-    const digit = val.replace(/\D/g, '').slice(-1);
-    const newOtp = [...otp];
-    newOtp[idx] = digit;
-    setOtp(newOtp);
-    if (digit && idx < OTP_LENGTH - 1) inputRefs.current[idx + 1]?.focus();
-  };
-
-  const handleKeyPress = (e: any, idx: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[idx] && idx > 0) {
-      inputRefs.current[idx - 1]?.focus();
-    }
-  };
-
-  const handleVerify = async () => {
-    if (otp.join('').length < OTP_LENGTH) return;
+  const handleVerifyWithOtp = async (otpStr: string) => {
+    if (otpStr.length < OTP_LENGTH) return;
     setLoading(true);
     try {
-      const data = await authAPI.verifyOtp(mobile, otp.join(''));
-      // Populate AuthContext immediately so profile screen updates
+      const data = await authAPI.verifyOtp(mobile, otpStr);
       if (data?.user) {
         const u = data.user;
         setUser({
@@ -112,17 +103,17 @@ export default function OtpScreen() {
       router.replace('/(tabs)' as any);
     } catch (err: any) {
       alert(err.message || 'Invalid OTP');
-      setOtp(Array(OTP_LENGTH).fill(''));
-      inputRefs.current[0]?.focus();
+      setOtp('');
+      hiddenInputRef.current?.focus();
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    setOtp(Array(OTP_LENGTH).fill(''));
+    setOtp('');
     setResendSec(30);
-    inputRefs.current[0]?.focus();
+    hiddenInputRef.current?.focus();
     try {
       await authAPI.sendOtp(mobile);
     } catch (err: any) {
@@ -130,12 +121,22 @@ export default function OtpScreen() {
     }
   };
 
-  const filled = otp.join('').length;
+  const filled = otp.length;
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
       <StatusBar barStyle="light-content" backgroundColor="#0A3D1F" />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
 
         {/* Top gradient section */}
         <LinearGradient colors={['#0A3D1F','#1B5E20','#2E7D32']}
@@ -163,22 +164,60 @@ export default function OtpScreen() {
         <View style={[s.card, { backgroundColor: theme.surface }]}>
           <Text style={[s.otpHint, { color: theme.textSecondary }]}>{t('auth.otpHint')}</Text>
 
-          {/* OTP boxes */}
-          <View style={s.otpRow}>
-            {otp.map((digit, idx) => (
-              <TextInput
-                key={idx}
-                ref={r => { inputRefs.current[idx] = r; }}
-                style={[s.otpBox, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }, digit && s.otpBoxFilled, idx === filled && s.otpBoxActive]}
-                value={digit}
-                onChangeText={v => handleChange(v, idx)}
-                onKeyPress={e => handleKeyPress(e, idx)}
-                keyboardType="number-pad"
-                maxLength={1}
-                selectTextOnFocus
-              />
-            ))}
-          </View>
+          {/* Hidden input for autofill */}
+          <TextInput
+            ref={hiddenInputRef}
+            value={otp}
+            onChangeText={v => {
+              const cleaned = v.replace(/\D/g, '').slice(0, OTP_LENGTH);
+              setOtp(cleaned);
+              if (cleaned.length === OTP_LENGTH) {
+                setTimeout(() => handleVerifyWithOtp(cleaned), 300);
+              }
+            }}
+            keyboardType="number-pad"
+            maxLength={OTP_LENGTH}
+            style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }}
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
+            autoFocus
+          />
+
+          {/* OTP boxes display */}
+          <TouchableOpacity 
+            style={s.otpRow} 
+            activeOpacity={1} 
+            onPress={() => hiddenInputRef.current?.focus()}
+          >
+            {Array(OTP_LENGTH).fill(0).map((_, idx) => {
+              const digit = otp[idx] || '';
+              const isActive = idx === otp.length;
+              const isFilled = !!digit;
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    s.otpBox,
+                    { 
+                      backgroundColor: theme.inputBg, 
+                      borderColor: theme.border,
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    },
+                    isFilled && s.otpBoxFilled,
+                    isActive && s.otpBoxActive,
+                  ]}
+                >
+                  <Text style={[
+                    { fontSize: FONT_SIZE.xl, fontWeight: '800' },
+                    { color: isFilled ? COLORS.primary : theme.text }
+                  ]}>
+                    {digit}
+                  </Text>
+                </View>
+              );
+            })}
+          </TouchableOpacity>
 
           {/* Progress bar */}
           <View style={[s.progressBar, { backgroundColor: theme.border }]}>
@@ -188,7 +227,7 @@ export default function OtpScreen() {
           {/* Verify button */}
           <TouchableOpacity
             style={[s.btn, filled < OTP_LENGTH && s.btnDisabled]}
-            onPress={handleVerify}
+            onPress={() => handleVerifyWithOtp(otp)}
             activeOpacity={0.85}
             disabled={filled < OTP_LENGTH || loading}
           >
@@ -218,6 +257,7 @@ export default function OtpScreen() {
           </View>
         </View>
 
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

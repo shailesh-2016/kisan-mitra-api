@@ -82,12 +82,17 @@ const sendOtp = async (req, res) => {
       });
     }
 
-    // Rate limit: prevent OTP spam (1 OTP per 60 seconds)
-    if (user.otp?.expiresAt && user.otp.expiresAt > new Date(Date.now() - 9 * 60 * 1000)) {
-      const waitSec = Math.ceil((user.otp.expiresAt - (Date.now() - 9 * 60 * 1000)) / 1000);
+    // Rate limit: prevent OTP spam (1 OTP per 30 seconds)
+    const thirtySecsAgo = new Date(Date.now() - 30 * 1000);
+    const otpCreationTime = user.otp?.expiresAt 
+      ? new Date(user.otp.expiresAt.getTime() - 10 * 60 * 1000) 
+      : null;
+
+    if (otpCreationTime && otpCreationTime > thirtySecsAgo) {
+      const waitSec = Math.ceil((30 * 1000 - (Date.now() - otpCreationTime.getTime())) / 1000);
       return res.status(429).json({
         success: false,
-        message: `Please wait ${waitSec} seconds before requesting a new OTP`,
+        message: `Please wait ${waitSec > 0 ? waitSec : 30} seconds before requesting a new OTP`,
       });
     }
 
@@ -167,12 +172,17 @@ const requestDeleteOtp = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // Rate limit: 1 OTP per 60 seconds
-    if (user.otp?.expiresAt && user.otp.expiresAt > new Date(Date.now() - 9 * 60 * 1000)) {
-      const waitSec = Math.ceil((user.otp.expiresAt - (Date.now() - 9 * 60 * 1000)) / 1000);
+    // Rate limit: 1 OTP per 30 seconds
+    const thirtySecsAgo = new Date(Date.now() - 30 * 1000);
+    const otpCreationTime = user.otp?.expiresAt 
+      ? new Date(user.otp.expiresAt.getTime() - 10 * 60 * 1000) 
+      : null;
+
+    if (otpCreationTime && otpCreationTime > thirtySecsAgo) {
+      const waitSec = Math.ceil((30 * 1000 - (Date.now() - otpCreationTime.getTime())) / 1000);
       return res.status(429).json({
         success: false,
-        message: `Please wait ${waitSec} seconds before requesting a new OTP`,
+        message: `Please wait ${waitSec > 0 ? waitSec : 30} seconds before requesting a new OTP`,
       });
     }
 

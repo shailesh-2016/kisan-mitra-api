@@ -67,17 +67,15 @@ export default function RegisterScreen() {
   const isValid = name.trim().length > 1 && mobile.length === 10 && village.trim().length > 1;
   const { theme, isDark } = useTheme();
 
-  const handleRegister = async () => {
-    if (!isValid) return;
+  const handleRegister = () => {
+    if (!isValid || loading) return;
     setLoading(true);
-    try {
-      await authAPI.register(name, mobile, village);
-      router.push({ pathname: '/otp', params: { mobile } } as any);
-    } catch (err: any) {
-      alert(err.message || 'Registration failed');
-    } finally {
+    // Navigate immediately
+    router.push({ pathname: '/otp', params: { mobile } } as any);
+    // Register in background
+    authAPI.register(name, mobile, village).finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   return (
@@ -132,16 +130,14 @@ export default function RegisterScreen() {
             <TouchableOpacity
               style={[s.btn, !isValid && s.btnDisabled]}
               onPress={handleRegister} activeOpacity={0.85}
-              disabled={!isValid || loading}
+              disabled={!isValid}
             >
               <LinearGradient
                 colors={isValid ? ['#1B5E20','#2E7D32','#43A047'] : ['#9E9E9E','#BDBDBD']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btnGrad}
               >
-                {loading
-                  ? <Text style={s.btnText}>{t('auth.loading')}</Text>
-                  : <><Ionicons name="person-add" size={18} color={COLORS.white} /><Text style={s.btnText}>{t('auth.register')}</Text></>
-                }
+                <Ionicons name="person-add" size={18} color={COLORS.white} />
+                <Text style={s.btnText}>{t('auth.register')}</Text>
               </LinearGradient>
             </TouchableOpacity>
 

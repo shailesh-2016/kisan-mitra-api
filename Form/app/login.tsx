@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, StatusBar, KeyboardAvoidingView,
@@ -21,30 +21,34 @@ export default function LoginScreen() {
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const { theme, isDark } = useTheme();
+  const inputRef = useRef<TextInput>(null);
 
-  const handleSendOtp = async () => {
-    if (mobile.length < 10) return;
+  const handleSendOtp = () => {
+    if (mobile.length < 10 || loading) return;
     setLoading(true);
-    try {
-      await authAPI.sendOtp(mobile);
-      router.push({ pathname: '/otp', params: { mobile, mode: 'login' } } as any);
-    } catch (err: any) {
-      // If user not found, redirect to register
-      if (err.message?.includes('not found')) {
-        router.push('/register' as any);
-      } else {
-        alert(err.message);
-      }
-    } finally {
+    // Navigate immediately for instant feedback
+    router.push({ pathname: '/otp', params: { mobile, mode: 'login' } } as any);
+    
+    // Trigger OTP in background
+    authAPI.sendOtp(mobile).finally(() => {
       setLoading(false);
-    }
+    });
   };
 
   return (
     <SafeAreaView style={[s.safe, { backgroundColor: theme.background }]} edges={['top', 'bottom']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.headerBg} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
 
           {/* Skip */}
           <TouchableOpacity style={s.skipBtn} onPress={() => router.replace('/(tabs)' as any)} activeOpacity={0.7}>
@@ -58,7 +62,6 @@ export default function LoginScreen() {
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroBg}>
               <View style={s.heroBlob1} />
               <View style={s.heroBlob2} />
-              {/* Farmer illustration using icons */}
               <View style={s.illustration}>
                 <Text style={s.illustEmoji}>🌾</Text>
                 <View style={s.illustRow}>
@@ -81,13 +84,18 @@ export default function LoginScreen() {
             <Text style={[s.cardTitle, { color: theme.text }]}>{t('auth.mobileNumber')}</Text>
             <Text style={[s.cardSubtitle, { color: theme.textSecondary }]}>{t('auth.mobilePlaceholder')}</Text>
 
-            <View style={[s.inputWrap, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }, focused && [s.inputWrapFocused, { backgroundColor: theme.surface }]]}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => inputRef.current?.focus()}
+              style={[s.inputWrap, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }, focused && [s.inputWrapFocused, { backgroundColor: theme.surface }]]}
+            >
               <View style={s.countryCode}>
                 <Text style={s.countryFlag}>🇮🇳</Text>
                 <Text style={[s.countryNum, { color: theme.text }]}>+91</Text>
               </View>
               <View style={s.inputDivider} />
               <TextInput
+                ref={inputRef}
                 style={[s.input, { color: theme.text }]}
                 value={mobile}
                 onChangeText={v => setMobile(v.replace(/\D/g, '').slice(0, 10))}
@@ -95,33 +103,33 @@ export default function LoginScreen() {
                 placeholderTextColor="#9CA3AF"
                 keyboardType="phone-pad"
                 maxLength={10}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleSendOtp}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
+                textContentType="telephoneNumber"
+                autoComplete="tel"
               />
               {mobile.length === 10 && (
                 <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
               )}
-            </View>
+            </TouchableOpacity>
 
             {/* Send OTP button */}
             <TouchableOpacity
               style={[s.btn, mobile.length < 10 && s.btnDisabled]}
               onPress={handleSendOtp}
               activeOpacity={0.85}
-              disabled={mobile.length < 10 || loading}
+              disabled={mobile.length < 10}
             >
               <LinearGradient
                 colors={mobile.length === 10 ? ['#1B5E20','#2E7D32','#43A047'] : ['#9E9E9E','#BDBDBD']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 style={s.btnGrad}
               >
-                {loading
-                  ? <Text style={s.btnText}>{t('auth.loading')}</Text>
-                  : <>
-                      <Ionicons name="send" size={17} color={COLORS.white} />
-                      <Text style={s.btnText}>{t('auth.sendOtp')}</Text>
-                    </>
-                }
+                <Ionicons name="send" size={17} color={COLORS.white} />
+                <Text style={s.btnText}>{t('auth.sendOtp')}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
