@@ -179,17 +179,17 @@ export default function Header({
              </View>
           ) : (
             <>
-              <View style={[styles.detailPill, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
-                <Ionicons name="water-outline" size={13} color="#3B82F6" />
-                <Text style={[styles.detailText, { color: theme.text }]}>{weather?.humidity}% {t('weather.hum_short', { defaultValue: 'Hum' })}</Text>
+              <View style={[styles.detailPill, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF', borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE' }]}>
+                <Ionicons name="water" size={14} color="#3B82F6" />
+                <Text style={[styles.detailText, { color: isDark ? '#93C5FD' : '#1E3A8A' }]}>{weather?.humidity}%</Text>
               </View>
-              <View style={[styles.detailPill, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
-                <Ionicons name="leaf-outline" size={13} color="#16A34A" />
-                <Text style={[styles.detailText, { color: theme.text }]}>{weather?.windSpeed} km/h</Text>
+              <View style={[styles.detailPill, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#F0FDF4', borderColor: isDark ? 'rgba(34, 197, 94, 0.3)' : '#BBF7D0' }]}>
+                <Ionicons name="leaf" size={14} color="#22C55E" />
+                <Text style={[styles.detailText, { color: isDark ? '#86EFAC' : '#14532D' }]}>{weather?.windSpeed} km/h</Text>
               </View>
-              <View style={[styles.detailPill, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
-                <Ionicons name="sunny-outline" size={13} color="#F59E0B" />
-                <Text style={[styles.detailText, { color: theme.text }]}>UV Low</Text>
+              <View style={[styles.detailPill, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB', borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : '#FDE68A' }]}>
+                <Ionicons name="sunny" size={14} color="#F59E0B" />
+                <Text style={[styles.detailText, { color: isDark ? '#FCD34D' : '#78350F' }]}>UV Low</Text>
               </View>
             </>
           )}
@@ -350,22 +350,28 @@ const styles = StyleSheet.create({
   weatherDetailsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: 8,
   },
   detailPill: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
     justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   detailText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   skeletonStrip: {
     flexDirection: 'row',

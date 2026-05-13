@@ -77,27 +77,39 @@ export default function OtpScreen() {
   // Countdown timer
   useEffect(() => {
     if (resendSec <= 0) return;
-    const timer = setInterval(() => setResendSec(s => s - 1), 1000);
+    const timer = setInterval(() => setResendSec(prev => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [resendSec]);
 
   const handleVerifyWithOtp = async (otpStr: string) => {
-    if (otpStr.length < OTP_LENGTH) return;
+    if (otpStr.length < OTP_LENGTH || loading) return;
+    if (!mobile) {
+      alert("Mobile number is missing. Please try again.");
+      router.back();
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await authAPI.verifyOtp(mobile, otpStr);
       if (data?.user) {
         const u = data.user;
         setUser({
-          id:           u._id || u.id,
-          name:         u.name         || '',
-          mobile:       u.mobile       || '',
-          village:      u.village      || '',
-          district:     u.district     || '',
-          state:        u.state        || '',
-          bio:          u.bio          || '',
-          profileImage: u.profileImage || '',
-          language:     u.language     || 'gu',
+          id:             u._id || u.id,
+          name:           u.name         || '',
+          mobile:         u.mobile       || '',
+          village:        u.village      || '',
+          district:       u.district     || '',
+          state:          u.state        || '',
+          bio:            u.bio          || '',
+          profileImage:   u.profileImage || '',
+          coverImage:     u.coverImage   || '',
+          language:       u.language     || 'gu',
+          farmSize:       u.farmSize     || '',
+          cropsGrown:     u.cropsGrown   || '',
+          experience:     u.experience   || '',
+          followersCount: Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0),
+          followingCount: Array.isArray(u.following) ? u.following.length : (u.followingCount || 0),
         });
       }
       router.replace('/(tabs)' as any);
@@ -111,6 +123,7 @@ export default function OtpScreen() {
   };
 
   const handleResend = async () => {
+    if (!mobile) return;
     setOtp('');
     setResendSec(30);
     hiddenInputRef.current?.focus();
