@@ -180,16 +180,16 @@ export default function Header({
           ) : (
             <>
               <View style={[styles.detailPill, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF', borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE' }]}>
-                <Ionicons name="water" size={14} color="#3B82F6" />
-                <Text style={[styles.detailText, { color: isDark ? '#93C5FD' : '#1E3A8A' }]}>{weather?.humidity}%</Text>
+                <Ionicons name="water" size={12} color="#3B82F6" />
+                <Text style={[styles.detailText, { color: isDark ? '#93C5FD' : '#1E3A8A' }]} numberOfLines={1} adjustsFontSizeToFit>{weather?.humidity}%</Text>
               </View>
               <View style={[styles.detailPill, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#F0FDF4', borderColor: isDark ? 'rgba(34, 197, 94, 0.3)' : '#BBF7D0' }]}>
-                <Ionicons name="leaf" size={14} color="#22C55E" />
-                <Text style={[styles.detailText, { color: isDark ? '#86EFAC' : '#14532D' }]}>{weather?.windSpeed} km/h</Text>
+                <Ionicons name="leaf" size={12} color="#22C55E" />
+                <Text style={[styles.detailText, { color: isDark ? '#86EFAC' : '#14532D' }]} numberOfLines={1} adjustsFontSizeToFit>{weather?.windSpeed} km/h</Text>
               </View>
               <View style={[styles.detailPill, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FFFBEB', borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : '#FDE68A' }]}>
-                <Ionicons name="sunny" size={14} color="#F59E0B" />
-                <Text style={[styles.detailText, { color: isDark ? '#FCD34D' : '#78350F' }]}>UV Low</Text>
+                <Ionicons name="sunny" size={12} color="#F59E0B" />
+                <Text style={[styles.detailText, { color: isDark ? '#FCD34D' : '#78350F' }]} numberOfLines={1} adjustsFontSizeToFit>UV Low</Text>
               </View>
             </>
           )}
@@ -353,14 +353,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   detailPill: {
-    flex: 1,
+    width: '31%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderRadius: 14,
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    borderRadius: 12,
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -369,18 +369,20 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   detailText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: 0,
+    flexShrink: 1,
   },
   skeletonStrip: {
     flexDirection: 'row',
-    gap: 10,
+    justifyContent: 'space-between',
+    gap: 8,
   },
   skeletonPill: {
-    width: 100,
-    height: 38,
-    borderRadius: 16,
+    width: '31%',
+    height: 34,
+    borderRadius: 12,
     opacity: 0.6,
   },
 });
