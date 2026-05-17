@@ -207,7 +207,7 @@ export default function DeleteAccountScreen() {
       setOtpSent(true);
       setResendSec(30);
       setStep(3);
-      Toast.show({ type: 'info', text1: `${UI_TEXTS[currentLang]?.toastOtpSent} ${user?.mobile}` });
+      Toast.show({ type: 'info', text1: `${UI_TEXTS[currentLang]?.toastOtpSent} ${user?.email}` });
     } catch (err: any) {
       Toast.show({ type: 'error', text1: err.message || 'Failed to send OTP' });
     } finally {
@@ -355,7 +355,7 @@ export default function DeleteAccountScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[s.userName, { color: theme.text }]}>{user.name}</Text>
-                    <Text style={[s.userMobile, { color: theme.textSecondary }]}>+91 {user.mobile}</Text>
+                    <Text style={[s.userMobile, { color: theme.textSecondary }]}>{user.email}</Text>
                   </View>
                   <View style={[s.deleteBadge, { backgroundColor: theme.redBg }]}>
                     <Text style={[s.deleteBadgeTxt, { color: theme.red }]}>{UI_TEXTS[currentLang]?.toDeleteBadge}</Text>
@@ -444,7 +444,7 @@ export default function DeleteAccountScreen() {
 
               <Text style={[s.otpNote, { color: theme.textSecondary }]}>
                 {UI_TEXTS[currentLang]?.otpNote}
-                <Text style={{ fontWeight: '700', color: theme.text }}>+91 {user?.mobile}</Text>
+                <Text style={{ fontWeight: '700', color: theme.text }}>{user?.email}</Text>
               </Text>
 
               <TouchableOpacity style={s.cancelLink} onPress={() => router.back()} activeOpacity={0.7}>
@@ -465,7 +465,7 @@ export default function DeleteAccountScreen() {
               <Text style={[s.bigTitle, { color: theme.text }]}>{UI_TEXTS[currentLang]?.otpTitle}</Text>
               <Text style={[s.bigSub, { color: theme.textSecondary }]}>
                 {UI_TEXTS[currentLang]?.otpSub}{'\n'}
-                <Text style={{ fontWeight: '800', color: theme.text }}>+91 {user?.mobile}</Text>
+                <Text style={{ fontWeight: '800', color: theme.text }}>{user?.email}</Text>
               </Text>
 
               {/* OTP boxes */}

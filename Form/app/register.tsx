@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, StatusBar, KeyboardAvoidingView,
-  Platform, ScrollView,
+  Platform, ScrollView, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,13 +15,14 @@ import { authAPI } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 
 // ── Reusable Field ────────────────────────────────────────────────────────────
-function Field({ label, value, onChange, placeholder, icon, iconColor = COLORS.primary, keyboardType = 'default', maxLength }: {
+function Field({ label, value, onChange, placeholder, icon, iconColor = COLORS.primary, keyboardType = 'default', secureTextEntry = false, autoCapitalize = 'none' }: {
   label: string; value: string; onChange: (v: string) => void;
   placeholder: string; icon: string; iconColor?: string;
-  keyboardType?: any; maxLength?: number;
+  keyboardType?: any; secureTextEntry?: boolean; autoCapitalize?: any;
 }) {
   const [focused, setFocused] = useState(false);
   const { theme } = useTheme();
+  
   return (
     <View style={f.wrap}>
       <Text style={[f.label, { color: theme.textSecondary }]}>{label}</Text>
@@ -32,10 +33,11 @@ function Field({ label, value, onChange, placeholder, icon, iconColor = COLORS.p
         <TextInput
           style={[f.input, { color: theme.text }]} value={value} onChangeText={onChange}
           placeholder={placeholder} placeholderTextColor="#9CA3AF"
-          keyboardType={keyboardType} maxLength={maxLength}
+          keyboardType={keyboardType} secureTextEntry={secureTextEntry}
+          autoCapitalize={autoCapitalize}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         />
-        {value.length > 0 && <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />}
+        {value.length > 0 && !secureTextEntry && <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />}
       </View>
     </View>
   );
@@ -47,7 +49,7 @@ const f = StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
     backgroundColor: COLORS.background, borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.sm, paddingVertical: 12,
+    paddingHorizontal: SPACING.sm, paddingVertical: 10,
     borderWidth: 1.5, borderColor: COLORS.border,
   },
   rowFocused: { borderColor: COLORS.primary, backgroundColor: COLORS.white },
@@ -60,24 +62,30 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const [name, setName]       = useState('');
-  const [mobile, setMobile]   = useState('');
-  const [village, setVillage] = useState('');
+  const [email, setEmail]     = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const isValid = name.trim().length > 1 && mobile.length === 10 && village.trim().length > 1;
+  const isValid = name.trim().length > 1 && email.includes('@') && password.length >= 8 && password === confirmPassword;
   const { theme, isDark } = useTheme();
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!isValid || loading) return;
+    
     setLoading(true);
-    // Navigate immediately
-    router.push({ pathname: '/otp', params: { mobile } } as any);
-    // Register in background
-    authAPI.register(name, mobile, village).catch(err => {
-      console.log('Background registration error:', err.message);
-    }).finally(() => {
-      setLoading(false);
-    });
+    setErrorMsg('');
+    try {
+       const res = await authAPI.register(name, email, password, '');
+       if (res.success) {
+          router.push({ pathname: '/otp', params: { email, mode: 'verify' } } as any);
+       }
+    } catch (err: any) {
+       setErrorMsg(err.message || 'Registration failed');
+    } finally {
+       setLoading(false);
+    }
   };
 
   return (
@@ -98,53 +106,56 @@ export default function RegisterScreen() {
           <LinearGradient colors={['#E8F5E9','#F1F8E9']} style={s.titleCard}>
             <View style={s.titleBlob} />
             <View style={s.titleLeft}>
-              <Text style={s.title}>{t('auth.registerTitle')}</Text>
-              <Text style={s.subtitle}>{t('auth.registerSubtitle')}</Text>
-              <View style={s.stepRow}>
-                {['👤','📱','🏡'].map((e, i) => (
-                  <View key={i} style={s.stepItem}>
-                    <View style={s.stepCircle}><Text style={{ fontSize: 14 }}>{e}</Text></View>
-                    {i < 2 && <View style={s.stepLine} />}
-                  </View>
-                ))}
-              </View>
+              <Text style={s.title}>{t('auth.registerTitle', 'Create Account')}</Text>
+              <Text style={s.subtitle}>{t('auth.registerSubtitle', 'Join the smart farming community')}</Text>
             </View>
             <Text style={s.titleEmoji}>🌾</Text>
           </LinearGradient>
 
           {/* Form */}
           <View style={[s.card, { backgroundColor: theme.surface }]}>
+            {errorMsg ? <Text style={s.errorText}>{errorMsg}</Text> : null}
+
             <Field
-              label={t('auth.fullName')} value={name} onChange={setName}
-              placeholder={t('auth.namePlaceholder')} icon="person" iconColor={COLORS.primary}
+              label={t('auth.fullName', 'Full Name')} value={name} onChange={setName}
+              placeholder="Ramesh Patel" icon="person" iconColor={COLORS.primary} autoCapitalize="words"
             />
             <Field
-              label={t('auth.mobileNumber')} value={mobile}
-              onChange={v => setMobile(v.replace(/\D/g,'').slice(0,10))}
-              placeholder="98765 43210" icon="call" iconColor="#1565C0"
-              keyboardType="phone-pad" maxLength={10}
+              label="Email Address" value={email} onChange={setEmail}
+              placeholder="farmer@example.com" icon="mail" iconColor="#1565C0"
+              keyboardType="email-address"
             />
             <Field
-              label={t('auth.village')} value={village} onChange={setVillage}
-              placeholder={t('auth.villagePlaceholder')} icon="location" iconColor="#F57F17"
+              label="Password" value={password} onChange={setPassword}
+              placeholder="Minimum 8 characters" icon="lock-closed" iconColor="#F57F17"
+              secureTextEntry
+            />
+            <Field
+              label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword}
+              placeholder="Re-enter your password" icon="lock-closed" iconColor="#D32F2F"
+              secureTextEntry
             />
 
             <TouchableOpacity
               style={[s.btn, !isValid && s.btnDisabled]}
               onPress={handleRegister} activeOpacity={0.85}
-              disabled={!isValid}
+              disabled={!isValid || loading}
             >
               <LinearGradient
                 colors={isValid ? ['#1B5E20','#2E7D32','#43A047'] : ['#9E9E9E','#BDBDBD']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.btnGrad}
               >
-                <Ionicons name="person-add" size={18} color={COLORS.white} />
-                <Text style={s.btnText}>{t('auth.register')}</Text>
+                {loading ? <ActivityIndicator color="#fff" /> : (
+                  <>
+                    <Ionicons name="person-add" size={18} color={COLORS.white} />
+                    <Text style={s.btnText}>{t('auth.register', 'Register')}</Text>
+                  </>
+                )}
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity style={s.linkBtn} onPress={() => router.back()} activeOpacity={0.7}>
-              <Text style={s.linkText}>{t('auth.haveAccount')}</Text>
+              <Text style={s.linkText}>{t('auth.haveAccount', 'Already have an account? Login')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -164,16 +175,18 @@ const s = StyleSheet.create({
   titleBlob: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(46,125,50,0.08)', top: -30, right: -20 },
   titleLeft: { flex: 1 },
   title: { fontSize: FONT_SIZE.xxl, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: 4, marginBottom: SPACING.md },
-  stepRow: { flexDirection: 'row', alignItems: 'center' },
-  stepItem: { flexDirection: 'row', alignItems: 'center' },
-  stepCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', ...SHADOW.sm },
-  stepLine: { width: 20, height: 1.5, backgroundColor: COLORS.border },
+  subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, marginTop: 4 },
   titleEmoji: { fontSize: 48, marginLeft: SPACING.sm },
   card: { backgroundColor: COLORS.white, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.md, ...SHADOW.md },
-  btn: { borderRadius: RADIUS.md, overflow: 'hidden', marginBottom: SPACING.md, ...SHADOW.md },
+  
+  errorText: {
+    color: '#D32F2F', fontSize: FONT_SIZE.sm, marginBottom: SPACING.md,
+    textAlign: 'center', fontWeight: '500'
+  },
+
+  btn: { borderRadius: RADIUS.md, overflow: 'hidden', marginBottom: SPACING.md, ...SHADOW.md, marginTop: SPACING.sm },
   btnDisabled: { opacity: 0.55 },
-  btnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, paddingVertical: SPACING.md + 2 },
+  btnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, paddingVertical: 14 },
   btnText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: COLORS.white },
   linkBtn: { alignItems: 'center', paddingVertical: SPACING.sm },
   linkText: { fontSize: FONT_SIZE.sm, color: COLORS.primary, fontWeight: '700' },

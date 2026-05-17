@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "kisan-plus-backend",
   "version": "1.0.0",
   "description": "Kisan Plus Backend API",
@@ -14,6 +14,7 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.4",
+    "nodemailer": "^8.0.7",
     "twilio": "^5.13.1"
   },
   "devDependencies": {

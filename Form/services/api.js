@@ -1,4 +1,4 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ── Base URL ──────────────────────────────────────────────────────────────────
 // Local development: use your PC's local IP (e.g. http://192.168.x.x:5000)
@@ -53,25 +53,16 @@ const request = async (endpoint, options = {}) => {
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 export const authAPI = {
-  // Register new user
-  register: (name, mobile, village, language = 'gu') =>
+  register: (name, email, password, village, language = 'gu') =>
     request('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, mobile, village, language }),
+      body: JSON.stringify({ name, email, password, village, language }),
     }),
 
-  // Send OTP to existing user
-  sendOtp: (mobile) =>
-    request('/api/auth/send-otp', {
+  login: async (email, password) => {
+    const data = await request('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ mobile }),
-    }),
-
-  // Verify OTP and get token
-  verifyOtp: async (mobile, otp) => {
-    const data = await request('/api/auth/verify-otp', {
-      method: 'POST',
-      body: JSON.stringify({ mobile, otp }),
+      body: JSON.stringify({ email, password }),
     });
     if (data.token) {
       await saveToken(data.token);
@@ -80,7 +71,54 @@ export const authAPI = {
     return data;
   },
 
-  // Logout
+  verifyOtp: async (email, otp) => {
+    const data = await request('/api/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    });
+    if (data.token) {
+      await saveToken(data.token);
+      await saveUser(data.user);
+    }
+    return data;
+  },
+
+  forgotPassword: (email) =>
+    request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (email, otp, newPassword) =>
+    request('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, newPassword }),
+    }),
+
+  googleLogin: async (email, name, profileImage, googleId) => {
+    const data = await request('/api/auth/google-login', {
+      method: 'POST',
+      body: JSON.stringify({ email, name, profileImage, googleId }),
+    });
+    if (data.token) {
+      await saveToken(data.token);
+      await saveUser(data.user);
+    }
+    return data;
+  },
+
+  facebookLogin: async (email, name, profileImage, facebookId) => {
+    const data = await request('/api/auth/facebook-login', {
+      method: 'POST',
+      body: JSON.stringify({ email, name, profileImage, facebookId }),
+    });
+    if (data.token) {
+      await saveToken(data.token);
+      await saveUser(data.user);
+    }
+    return data;
+  },
+
   logout: async () => {
     await removeToken();
     await removeUser();

@@ -6,11 +6,28 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Name is required'],
     trim: true,
   },
-  mobile: {
+  email: {
     type: String,
-    required: [true, 'Mobile number is required'],
+    required: [true, 'Email is required'],
     unique: true,
-    match: [/^[6-9]\d{9}$/, 'Enter a valid 10-digit mobile number'],
+    trim: true,
+    lowercase: true,
+    match: [/^\S+@\S+\.\S+$/, 'Enter a valid email address'],
+  },
+  password: {
+    type: String,
+    required: function() {
+      return this.provider === 'local';
+    },
+  },
+  provider: {
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local',
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
   },
   village: {
     type: String,

@@ -121,7 +121,7 @@ export default function EditProfileScreen() {
         const updated = {
           id:             u._id || u.id || user?.id || '',
           name:           u.name         || '',
-          mobile:         u.mobile       || user?.mobile || '',
+          email:          u.email        || user?.email || '',
           village:        u.village      || '',
           district:       u.district     || '',
           state:          u.state        || '',

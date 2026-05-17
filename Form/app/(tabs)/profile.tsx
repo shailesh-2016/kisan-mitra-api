@@ -159,10 +159,10 @@ export default function ProfileScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* Mobile info strip */}
+            {/* Email info strip */}
             <View style={[styles.mobileStrip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Ionicons name="call-outline" size={14} color={COLORS.primary} />
-              <Text style={[styles.mobileStripText, { color: theme.text }]}>+91 {user.mobile}</Text>
+              <Ionicons name="mail-outline" size={14} color={COLORS.primary} />
+              <Text style={[styles.mobileStripText, { color: theme.text }]}>{user.email}</Text>
               <View style={styles.mobileVerifiedPill}>
                 <Ionicons name="shield-checkmark" size={11} color="#16A34A" />
                 <Text style={styles.mobileVerifiedText}>{t('profile.verified')}</Text>

@@ -8,7 +8,7 @@ import { getToken, getUser, removeToken, removeUser, saveUser, userAPI } from '.
 export interface UserProfile {
   id: string;
   name: string;
-  mobile: string;
+  email: string;
   village: string;
   district: string;
   state: string;
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const profile: UserProfile = {
               id:             u._id || u.id,
               name:           u.name         || '',
-              mobile:         u.mobile       || '',
+              email:          u.email        || '',
               village:        u.village      || '',
               district:       u.district     || '',
               state:          u.state        || '',
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profile: UserProfile = {
           id:             u._id || u.id,
           name:           u.name         || '',
-          mobile:         u.mobile       || '',
+          email:          u.email        || '',
           village:        u.village      || '',
           district:       u.district     || '',
           state:          u.state        || '',

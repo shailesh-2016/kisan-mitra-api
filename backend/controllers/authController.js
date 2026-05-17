@@ -1,6 +1,7 @@
 const jwt  = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const { sendOtpSms } = require('../config/twilio');
+const { sendEmailOtp } = require('../config/email');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const generateToken = (id) =>
@@ -9,51 +10,47 @@ const generateToken = (id) =>
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-// Send OTP — uses Twilio in production, logs to console in development
-const dispatchOtp = async (mobile, otp) => {
-  if (process.env.NODE_ENV === 'production') {
-    await sendOtpSms(mobile, otp);
-  } else {
-    // Dev mode: print OTP to console instead of sending SMS
-    console.log(`\n📱 [DEV] OTP for +91${mobile}: ${otp}\n`);
-  }
-};
-
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 const register = async (req, res) => {
   try {
-    const { name, mobile, village, language } = req.body;
+    const { name, email, password, village, language } = req.body;
 
-    if (!name?.trim() || !mobile) {
-      return res.status(400).json({ success: false, message: 'Name and mobile are required' });
-    }
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
-      return res.status(400).json({ success: false, message: 'Enter a valid 10-digit mobile number' });
+    if (!name?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
     }
 
-    const exists = await User.findOne({ mobile });
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
+    }
+
+    const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) {
-      return res.status(400).json({ success: false, message: 'Mobile already registered. Please login.' });
+      return res.status(400).json({ success: false, message: 'Email already registered. Please login.' });
     }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
     const user = await User.create({
       name: name.trim(),
-      mobile,
+      email: email.toLowerCase(),
+      password: hashedPassword,
       village: village?.trim() || '',
       language: language || 'gu',
+      isVerified: false,
+      provider: 'local',
       otp: { code: otp, expiresAt: otpExpiry },
     });
 
-    await dispatchOtp(mobile, otp);
+    await sendEmailOtp(user.email, otp);
 
     res.status(201).json({
       success: true,
-      message: 'OTP sent to your mobile number',
-      mobile,
-      // Expose OTP only in development for testing
+      message: 'Registration successful. OTP sent to your email for verification.',
+      email: user.email,
       ...(process.env.NODE_ENV !== 'production' && { otp }),
     });
   } catch (err) {
@@ -62,53 +59,60 @@ const register = async (req, res) => {
   }
 };
 
-// ── POST /api/auth/send-otp ───────────────────────────────────────────────────
-const sendOtp = async (req, res) => {
+// ── POST /api/auth/login ──────────────────────────────────────────────────────
+const login = async (req, res) => {
   try {
-    const { mobile } = req.body;
+    const { email, password } = req.body;
 
-    if (!mobile) {
-      return res.status(400).json({ success: false, message: 'Mobile number required' });
-    }
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
-      return res.status(400).json({ success: false, message: 'Enter a valid 10-digit mobile number' });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ mobile });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Mobile not registered. Please register first.',
+      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    if (user.provider !== 'local') {
+      return res.status(400).json({ success: false, message: `Please login using ${user.provider}` });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    if (!user.isVerified) {
+      const otp = generateOtp();
+      user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
+      await user.save();
+      await sendEmailOtp(user.email, otp);
+      
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Email not verified. A new OTP has been sent to your email.', 
+        requiresVerification: true,
+        email: user.email 
       });
     }
 
-    // Rate limit: prevent OTP spam (1 OTP per 30 seconds)
-    const thirtySecsAgo = new Date(Date.now() - 30 * 1000);
-    const otpCreationTime = user.otp?.expiresAt 
-      ? new Date(user.otp.expiresAt.getTime() - 10 * 60 * 1000) 
-      : null;
-
-    if (otpCreationTime && otpCreationTime > thirtySecsAgo) {
-      const waitSec = Math.ceil((30 * 1000 - (Date.now() - otpCreationTime.getTime())) / 1000);
-      return res.status(429).json({
-        success: false,
-        message: `Please wait ${waitSec > 0 ? waitSec : 30} seconds before requesting a new OTP`,
-      });
-    }
-
-    const otp = generateOtp();
-    user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
-    await user.save();
-
-    await dispatchOtp(mobile, otp);
+    const token = generateToken(user._id);
 
     res.json({
       success: true,
-      message: 'OTP sent to your mobile number',
-      ...(process.env.NODE_ENV !== 'production' && { otp }),
+      message: 'Login successful',
+      token,
+      user: {
+        id:           user._id,
+        name:         user.name,
+        email:        user.email,
+        village:      user.village,
+        profileImage: user.profileImage,
+        provider:     user.provider,
+      },
     });
   } catch (err) {
-    console.error('Send OTP error:', err.message);
+    console.error('Login error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -116,13 +120,13 @@ const sendOtp = async (req, res) => {
 // ── POST /api/auth/verify-otp ─────────────────────────────────────────────────
 const verifyOtp = async (req, res) => {
   try {
-    const { mobile, otp } = req.body;
+    const { email, otp } = req.body;
 
-    if (!mobile || !otp) {
-      return res.status(400).json({ success: false, message: 'Mobile and OTP are required' });
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
     }
 
-    const user = await User.findOne({ mobile });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -139,24 +143,22 @@ const verifyOtp = async (req, res) => {
 
     // Clear OTP after successful verification
     user.otp = undefined;
+    user.isVerified = true;
     await user.save();
 
     const token = generateToken(user._id);
 
     res.json({
       success: true,
-      message: 'Login successful',
+      message: 'Verification successful',
       token,
       user: {
         id:           user._id,
         name:         user.name,
-        mobile:       user.mobile,
+        email:        user.email,
         village:      user.village,
-        district:     user.district || '',
-        state:        user.state    || '',
-        bio:          user.bio      || '',
-        profileImage: user.profileImage || '',
-        language:     user.language,
+        profileImage: user.profileImage,
+        provider:     user.provider,
       },
     });
   } catch (err) {
@@ -165,8 +167,183 @@ const verifyOtp = async (req, res) => {
   }
 };
 
+// ── POST /api/auth/forgot-password ────────────────────────────────────────────
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      // Don't reveal that user doesn't exist for security
+      return res.json({ success: true, message: 'If that email is registered, you will receive an OTP shortly.' });
+    }
+
+    if (user.provider !== 'local') {
+      return res.status(400).json({ success: false, message: `Account registered with ${user.provider}. Password reset not applicable.` });
+    }
+
+    const otp = generateOtp();
+    user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
+    await user.save();
+
+    await sendEmailOtp(user.email, otp);
+
+    res.json({
+      success: true,
+      message: 'OTP sent to your email',
+      ...(process.env.NODE_ENV !== 'production' && { otp }),
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── POST /api/auth/reset-password ─────────────────────────────────────────────
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check OTP match
+    if (!user.otp?.code || user.otp.code !== otp.toString()) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    // Check OTP expiry
+    if (user.otp.expiresAt < new Date()) {
+      return res.status(400).json({ success: false, message: 'OTP has expired' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.otp = undefined;
+    
+    // Auto verify if not already verified
+    if (!user.isVerified) {
+        user.isVerified = true;
+    }
+    
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password reset successfully. You can now login.',
+    });
+  } catch (err) {
+    console.error('Reset password error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── POST /api/auth/google-login ───────────────────────────────────────────────
+const googleLogin = async (req, res) => {
+  try {
+    const { email, name, profileImage, googleId } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required from Google' });
+    }
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user) {
+      if (user.provider === 'local') {
+          return res.status(400).json({ success: false, message: 'Email already registered with password. Please login normally.' });
+      }
+    } else {
+      user = await User.create({
+        name: name || 'Google User',
+        email: email.toLowerCase(),
+        profileImage: profileImage || '',
+        provider: 'google',
+        isVerified: true,
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: 'Google login successful',
+      token,
+      user: {
+        id:           user._id,
+        name:         user.name,
+        email:        user.email,
+        profileImage: user.profileImage,
+        provider:     user.provider,
+      },
+    });
+  } catch (err) {
+    console.error('Google login error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── POST /api/auth/facebook-login ─────────────────────────────────────────────
+const facebookLogin = async (req, res) => {
+  try {
+    const { email, name, profileImage, facebookId } = req.body;
+    
+    // Facebook might not provide email depending on permissions
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email permission is required for Facebook login' });
+    }
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (user) {
+      if (user.provider === 'local') {
+          return res.status(400).json({ success: false, message: 'Email already registered with password. Please login normally.' });
+      }
+    } else {
+      user = await User.create({
+        name: name || 'Facebook User',
+        email: email.toLowerCase(),
+        profileImage: profileImage || '',
+        provider: 'facebook',
+        isVerified: true,
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: 'Facebook login successful',
+      token,
+      user: {
+        id:           user._id,
+        name:         user.name,
+        email:        user.email,
+        profileImage: user.profileImage,
+        provider:     user.provider,
+      },
+    });
+  } catch (err) {
+    console.error('Facebook login error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ── POST /api/user/request-delete-otp ────────────────────────────────────────
-// Sends a deletion-specific OTP to the user's registered mobile number.
 const requestDeleteOtp = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -190,12 +367,12 @@ const requestDeleteOtp = async (req, res) => {
     user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
     await user.save();
 
-    await dispatchOtp(user.mobile, otp);
+    await sendEmailOtp(user.email, otp);
 
     res.json({
       success: true,
-      message: 'Deletion OTP sent to your registered mobile number',
-      mobile: user.mobile,
+      message: 'Deletion OTP sent to your registered email',
+      email: user.email,
       ...(process.env.NODE_ENV !== 'production' && { otp }),
     });
   } catch (err) {
@@ -204,4 +381,13 @@ const requestDeleteOtp = async (req, res) => {
   }
 };
 
-module.exports = { register, sendOtp, verifyOtp, requestDeleteOtp };
+module.exports = { 
+  register, 
+  login, 
+  verifyOtp, 
+  forgotPassword, 
+  resetPassword, 
+  googleLogin, 
+  facebookLogin,
+  requestDeleteOtp
+};
