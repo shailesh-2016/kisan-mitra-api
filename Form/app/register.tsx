@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, StatusBar, KeyboardAvoidingView,
@@ -13,6 +13,11 @@ import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import KisanLogo from '../components/KisanLogo';
 import { authAPI } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import * as Facebook from 'expo-auth-session/providers/facebook';
+
+WebBrowser.maybeCompleteAuthSession();
 
 // ── Reusable Field ────────────────────────────────────────────────────────────
 function Field({ label, value, onChange, placeholder, icon, iconColor = COLORS.primary, keyboardType = 'default', secureTextEntry = false, autoCapitalize = 'none' }: {
@@ -70,6 +75,79 @@ export default function RegisterScreen() {
 
   const isValid = name.trim().length > 1 && email.includes('@') && password.length >= 8 && password === confirmPassword;
   const { theme, isDark } = useTheme();
+
+  // Social Login Hooks
+  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+  });
+
+  const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID',
+  });
+
+  // Handle Google Auth Response
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const { authentication } = googleResponse;
+      if (authentication?.accessToken) {
+         setLoading(true);
+         fetch('https://www.googleapis.com/userinfo/v2/me', {
+           headers: { Authorization: `Bearer ${authentication.accessToken}` }
+         })
+         .then(res => res.json())
+         .then(data => {
+           return authAPI.googleLogin(data.email, data.name, data.picture, authentication.accessToken);
+         })
+         .then(res => { 
+           setLoading(false);
+           if (res.success) router.replace('/(tabs)' as any); 
+         })
+         .catch(err => {
+           setLoading(false);
+           setErrorMsg(err.message || 'Google Login Failed');
+         });
+      }
+    }
+  }, [googleResponse]);
+
+  // Handle Facebook Auth Response
+  useEffect(() => {
+    if (fbResponse?.type === 'success') {
+      const { authentication } = fbResponse;
+      if (authentication?.accessToken) {
+         setLoading(true);
+         fetch(`https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${authentication.accessToken}`)
+         .then(res => res.json())
+         .then(data => {
+           const email = data.email || `${data.id}@facebook.com`;
+           const picture = data.picture?.data?.url || '';
+           return authAPI.facebookLogin(email, data.name, picture, authentication.accessToken);
+         })
+         .then(res => { 
+           setLoading(false);
+           if (res.success) router.replace('/(tabs)' as any); 
+         })
+         .catch(err => {
+           setLoading(false);
+           setErrorMsg(err.message || 'Facebook Login Failed');
+         });
+      }
+    }
+  }, [fbResponse]);
+
+  const handleSocialLogin = async (provider: 'google' | 'facebook') => {
+    try {
+      if (provider === 'google') {
+        await googlePromptAsync();
+      } else {
+        await fbPromptAsync();
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Social login failed');
+    }
+  };
 
   const handleRegister = async () => {
     if (!isValid || loading) return;
@@ -154,6 +232,34 @@ export default function RegisterScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
+            {/* Divider */}
+            <View style={s.dividerRow}>
+              <View style={s.dividerLine} />
+              <Text style={s.dividerText}>OR</Text>
+              <View style={s.dividerLine} />
+            </View>
+
+            {/* Social Buttons */}
+            <View style={s.socialStack}>
+               <TouchableOpacity 
+                  style={[s.socialBtnStack, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]} 
+                  onPress={() => handleSocialLogin('google')}
+                  disabled={loading}
+               >
+                  <Ionicons name="logo-google" size={22} color="#DB4437" />
+                  <Text style={[s.socialBtnTextStack, { color: theme.text }]}>{t('auth.google', 'Continue with Google')}</Text>
+               </TouchableOpacity>
+
+               <TouchableOpacity 
+                  style={[s.socialBtnStack, { backgroundColor: '#1877F2', borderWidth: 1, borderColor: '#1877F2' }]} 
+                  onPress={() => handleSocialLogin('facebook')}
+                  disabled={loading}
+               >
+                  <Ionicons name="logo-facebook" size={22} color="#fff" />
+                  <Text style={[s.socialBtnTextStack, { color: '#fff' }]}>{t('auth.facebook', 'Continue with Facebook')}</Text>
+               </TouchableOpacity>
+            </View>
+
             <TouchableOpacity style={s.linkBtn} onPress={() => router.back()} activeOpacity={0.7}>
               <Text style={s.linkText}>{t('auth.haveAccount', 'Already have an account? Login')}</Text>
             </TouchableOpacity>
@@ -188,6 +294,19 @@ const s = StyleSheet.create({
   btnDisabled: { opacity: 0.55 },
   btnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, paddingVertical: 14 },
   btnText: { fontSize: FONT_SIZE.lg, fontWeight: '800', color: COLORS.white },
+  
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: SPACING.lg },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E0E0E0' },
+  dividerText: { fontSize: FONT_SIZE.xs, color: '#9E9E9E', fontWeight: '600' },
+
+  socialStack: { gap: SPACING.md, marginBottom: SPACING.md },
+  socialBtnStack: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: RADIUS.md, gap: SPACING.sm,
+    ...SHADOW.sm,
+  },
+  socialBtnTextStack: { fontSize: FONT_SIZE.md, fontWeight: '700' },
+
   linkBtn: { alignItems: 'center', paddingVertical: SPACING.sm },
   linkText: { fontSize: FONT_SIZE.sm, color: COLORS.primary, fontWeight: '700' },
   terms: { fontSize: 10, color: COLORS.textSecondary, textAlign: 'center', paddingHorizontal: SPACING.lg },
