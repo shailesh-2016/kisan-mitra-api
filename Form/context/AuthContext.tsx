@@ -3,6 +3,8 @@ import React, {
   useEffect, useCallback, ReactNode,
 } from 'react';
 import { getToken, getUser, removeToken, removeUser, saveUser, userAPI } from '../services/api';
+import { auth } from '../services/firebaseConfig';
+import { signOut } from 'firebase/auth';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface UserProfile {
@@ -123,8 +125,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Logout: clear storage + state
+  // Logout: clear storage + state + firebase
   const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn('Firebase signout failed', e);
+    }
     await removeToken();
     await removeUser();
     setUser(null);

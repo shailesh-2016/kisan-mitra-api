@@ -31,13 +31,13 @@ export default function LoginScreen() {
 
   // Social Login Hooks (Replace client IDs with actual ones in production)
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-    iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
   });
 
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
-    clientId: 'YOUR_FACEBOOK_APP_ID',
+    clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID',
   });
 
   // Handle Google Auth Response
@@ -45,11 +45,22 @@ export default function LoginScreen() {
     if (googleResponse?.type === 'success') {
       const { authentication } = googleResponse;
       if (authentication?.accessToken) {
-         // Typically you would fetch user profile from Google API here
-         // For now, we mock the payload sent to our backend
-         authAPI.googleLogin('google_user@example.com', 'Google User', '', authentication.accessToken)
-            .then(res => { if (res.success) router.replace('/(tabs)' as any); })
-            .catch(err => setErrorMsg(err.message));
+         setLoading(true);
+         fetch('https://www.googleapis.com/userinfo/v2/me', {
+           headers: { Authorization: `Bearer ${authentication.accessToken}` }
+         })
+         .then(res => res.json())
+         .then(data => {
+           return authAPI.googleLogin(data.email, data.name, data.picture, authentication.accessToken);
+         })
+         .then(res => { 
+           setLoading(false);
+           if (res.success) router.replace('/(tabs)' as any); 
+         })
+         .catch(err => {
+           setLoading(false);
+           setErrorMsg(err.message || 'Google Login Failed');
+         });
       }
     }
   }, [googleResponse]);
@@ -59,10 +70,22 @@ export default function LoginScreen() {
     if (fbResponse?.type === 'success') {
       const { authentication } = fbResponse;
       if (authentication?.accessToken) {
-         // Typically fetch user profile from FB API here
-         authAPI.facebookLogin('facebook_user@example.com', 'Facebook User', '', authentication.accessToken)
-            .then(res => { if (res.success) router.replace('/(tabs)' as any); })
-            .catch(err => setErrorMsg(err.message));
+         setLoading(true);
+         fetch(`https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${authentication.accessToken}`)
+         .then(res => res.json())
+         .then(data => {
+           const email = data.email || `${data.id}@facebook.com`;
+           const picture = data.picture?.data?.url || '';
+           return authAPI.facebookLogin(email, data.name, picture, authentication.accessToken);
+         })
+         .then(res => { 
+           setLoading(false);
+           if (res.success) router.replace('/(tabs)' as any); 
+         })
+         .catch(err => {
+           setLoading(false);
+           setErrorMsg(err.message || 'Facebook Login Failed');
+         });
       }
     }
   }, [fbResponse]);
@@ -231,15 +254,23 @@ export default function LoginScreen() {
             </View>
 
             {/* Social Buttons */}
-            <View style={s.socialRow}>
-               <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]} onPress={() => handleSocialLogin('google')}>
-                  <Ionicons name="logo-google" size={20} color="#DB4437" />
-                  <Text style={[s.socialBtnText, { color: '#333' }]}>Google</Text>
+            <View style={s.socialStack}>
+               <TouchableOpacity 
+                  style={[s.socialBtnStack, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]} 
+                  onPress={() => handleSocialLogin('google')}
+                  disabled={loading}
+               >
+                  <Ionicons name="logo-google" size={22} color="#DB4437" />
+                  <Text style={[s.socialBtnTextStack, { color: theme.text }]}>{t('auth.google', 'Continue with Google')}</Text>
                </TouchableOpacity>
 
-               <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#1877F2' }]} onPress={() => handleSocialLogin('facebook')}>
-                  <Ionicons name="logo-facebook" size={20} color="#fff" />
-                  <Text style={[s.socialBtnText, { color: '#fff' }]}>Facebook</Text>
+               <TouchableOpacity 
+                  style={[s.socialBtnStack, { backgroundColor: '#1877F2', borderWidth: 1, borderColor: '#1877F2' }]} 
+                  onPress={() => handleSocialLogin('facebook')}
+                  disabled={loading}
+               >
+                  <Ionicons name="logo-facebook" size={22} color="#fff" />
+                  <Text style={[s.socialBtnTextStack, { color: '#fff' }]}>{t('auth.facebook', 'Continue with Facebook')}</Text>
                </TouchableOpacity>
             </View>
 
@@ -324,12 +355,13 @@ const s = StyleSheet.create({
   dividerLine: { flex: 1, height: 1, backgroundColor: '#E0E0E0' },
   dividerText: { fontSize: FONT_SIZE.xs, color: '#9E9E9E', fontWeight: '600' },
 
-  socialRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.lg },
-  socialBtn: {
-     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-     paddingVertical: 12, borderRadius: RADIUS.md, gap: SPACING.sm, ...SHADOW.sm
+  socialStack: { gap: SPACING.md, marginBottom: SPACING.lg },
+  socialBtnStack: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: RADIUS.md, gap: SPACING.sm,
+    ...SHADOW.sm,
   },
-  socialBtnText: { fontSize: FONT_SIZE.md, fontWeight: '700' },
+  socialBtnTextStack: { fontSize: FONT_SIZE.md, fontWeight: '700' },
 
   linkBtn: { alignItems: 'center', paddingVertical: SPACING.xs },
   linkText: { fontSize: FONT_SIZE.sm, color: COLORS.primary, fontWeight: '700' },
