@@ -23,9 +23,32 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long' });
     }
 
-    const exists = await User.findOne({ email: email.toLowerCase() });
-    if (exists) {
-      return res.status(400).json({ success: false, message: 'Email already registered. Please login.' });
+    let user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (user) {
+      if (user.isVerified) {
+        return res.status(400).json({ success: false, message: 'Email already registered. Please login.' });
+      }
+      
+      // User exists but not verified. Update their details and resend OTP
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+      user.name = name.trim();
+      user.village = village?.trim() || '';
+      user.language = language || 'gu';
+      
+      const otp = generateOtp();
+      user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
+      await user.save();
+      
+      await sendEmailOtp(user.email, otp);
+      
+      return res.status(201).json({
+        success: true,
+        message: 'Registration successful. OTP sent to your email for verification.',
+        email: user.email,
+        ...(process.env.NODE_ENV !== 'production' && { otp }),
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -34,7 +57,7 @@ const register = async (req, res) => {
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
-    const user = await User.create({
+    user = await User.create({
       name: name.trim(),
       email: email.toLowerCase(),
       password: hashedPassword,
