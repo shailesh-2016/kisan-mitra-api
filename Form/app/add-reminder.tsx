@@ -164,7 +164,7 @@ export default function AddReminderScreen() {
 
   const handleSave = async () => {
     if (!taskName.trim()) {
-      Alert.alert('', t('reminder.nameRequired'));
+      toastService.error(t('reminder.nameRequired'));
       return;
     }
     setSaving(true);
@@ -188,7 +188,7 @@ export default function AddReminderScreen() {
       toastService.reminderAdded(task.name);
       router.back();
     } catch (e) {
-      Alert.alert('Error', String(e));
+      toastService.error(String(e));
     } finally {
       setSaving(false);
     }

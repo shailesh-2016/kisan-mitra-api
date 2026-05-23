@@ -10,7 +10,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { COLORS } from '../constants/theme';
 import { machineAPI } from '../services/api';
-import { Toast } from '../components/Toast';
+import { toastService } from '../services/toastService';
 import PageHeader from '../components/PageHeader';
 
 // ── Focused Input ─────────────────────────────────────────────────────────────
@@ -100,15 +100,14 @@ export default function AddEntryScreen() {
 
   const save = async () => {
     if (!ready) return;
-    if (!machine.id) { Toast.show({ type: 'error', text1: 'Machine ID missing' }); return; }
+    if (!machine.id) { toastService.error('Machine ID missing'); return; }
     try {
       await machineAPI.addEntry(machine.id, farmerName.trim(), address.trim(),
         parseFloat(pricePerHour) || 0, totalHoursDisplay, Math.round(amount));
-      Toast.show({ type: 'success', text1: t('machine.entrySaved'),
-        text2: `${farmerName.trim()} — ₹${Math.round(amount).toLocaleString('en-IN')}`, visibilityTime: 2500 });
+      toastService.success(t('machine.entrySaved'), `${farmerName.trim()} — ₹${Math.round(amount).toLocaleString('en-IN')}`);
       router.back();
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: t('machine.deleteFailed'), text2: err?.message || 'Unknown error' });
+      toastService.error(t('machine.deleteFailed'), err?.message || 'Unknown error');
     }
   };
 

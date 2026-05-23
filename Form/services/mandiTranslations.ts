@@ -334,6 +334,11 @@ const MANDI_LABELS: Record<string, { hi: string; gu: string }> = {
   'Grains':     { hi: 'अनाज',     gu: 'અનાજ'    },
   'Pulses':     { hi: 'दालें',    gu: 'કઠોળ'    },
   'Fruits':     { hi: 'फल',       gu: 'ફળ'      },
+  "Today's Data": { hi: 'आज का भाव', gu: 'આજનો ભાવ' },
+  "Yesterday's Data": { hi: 'कल का भाव', gu: 'ગઈકાલનો ભાવ' },
+  "Data from 2 days ago": { hi: '2 दिन पुराना भाव', gu: '2 દિવસ પહેલાનો ભાવ' },
+  "Data from 3 days ago": { hi: '3 दिन पुराना भाव', gu: '3 દિવસ પહેલાનો ભાવ' },
+  "Latest Available Data": { hi: 'नवीनतम उपलब्ध डेटा', gu: 'છેલ્લો ઉપલબ્ધ ભાવ' },
 };
 
 /**

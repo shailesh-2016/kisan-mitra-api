@@ -395,6 +395,7 @@ export default function MarketScreen() {
   const [search,           setSearch]           = useState('');
   const [openDropdown,     setOpenDropdown]     = useState<'state' | 'district' | null>(null);
   const [dataSource,       setDataSource]       = useState('');
+  const [dateLabel,        setDateLabel]        = useState('');
   const [locationDenied,   setLocationDenied]   = useState(false);
   const [lang,             setLang]             = useState<Lang>((i18n.language as Lang) || 'gu');
 
@@ -448,6 +449,7 @@ export default function MarketScreen() {
       setNearbyInfo({ district: matchedDistrict, state: matchedState });
       setNearbyGroups(groups);
       setDataSource(result.source || '');
+      setDateLabel(result.dateLabel || '');
       fadeIn();
     } catch (err) {
       console.warn('[Market] loadNearby error:', err);
@@ -469,6 +471,7 @@ export default function MarketScreen() {
     try {
       const res = await fetchByState(state);
       setMandiData(res.data || []); setDataSource(res.source || '');
+      setDateLabel(res.dateLabel || '');
       setDistricts(getDistricts(res.data || [])); fadeIn();
     } finally { setLoading(false); }
   }, [fadeIn]);
@@ -480,7 +483,8 @@ export default function MarketScreen() {
     await new Promise(r => setTimeout(r, 80));
     try {
       const res = await fetchByDistrict(selectedState, district);
-      setMandiData(res.data || []); setDataSource(res.source || ''); fadeIn();
+      setMandiData(res.data || []); setDataSource(res.source || '');
+      setDateLabel(res.dateLabel || ''); fadeIn();
     } finally { setLoading(false); }
   }, [selectedState, fadeIn]);
 
@@ -493,10 +497,12 @@ export default function MarketScreen() {
     try {
       if (selectedDistrict && selectedState) {
         const res = await fetchByDistrict(selectedState, selectedDistrict);
-        setMandiData(res.data || []); setDataSource(res.source || ''); fadeIn();
+        setMandiData(res.data || []); setDataSource(res.source || '');
+        setDateLabel(res.dateLabel || ''); fadeIn();
       } else if (selectedState) {
         const res = await fetchByState(selectedState);
         setMandiData(res.data || []); setDataSource(res.source || '');
+        setDateLabel(res.dateLabel || '');
         setDistricts(getDistricts(res.data || [])); fadeIn();
       } else {
         await loadNearby();
@@ -563,12 +569,21 @@ export default function MarketScreen() {
           </View>
           <View style={s.headerRight}>
             {/* Live/Cached badge */}
-            <View style={[s.sourceBadge, { backgroundColor: dataSource === 'live' ? theme.primaryBg : theme.secondaryBg }]}>
-              <View style={[s.sourceDot, { backgroundColor: dataSource === 'live' ? '#22C55E' : '#F59E0B' }]} />
-              <Text style={[s.sourceTxt, { color: dataSource === 'live' ? theme.primary : '#D97706' }]}>
-                {dataSource === 'live' ? 'Live' : 'Cached'}
-              </Text>
-            </View>
+            {dateLabel && dateLabel !== "Today's Data" ? (
+              <View style={[s.sourceBadge, { backgroundColor: isDark ? '#451a03' : '#fffbeb', borderColor: isDark ? '#78350f' : '#fde68a', borderWidth: 1 }]}>
+                <Ionicons name="calendar-outline" size={11} color={isDark ? '#fbbf24' : '#b45309'} style={{ marginRight: 2 }} />
+                <Text style={[s.sourceTxt, { color: isDark ? '#fbbf24' : '#b45309', fontSize: 10, fontWeight: '700' }]}>
+                  {tl(dateLabel)}
+                </Text>
+              </View>
+            ) : (
+              <View style={[s.sourceBadge, { backgroundColor: dataSource === 'live' ? theme.primaryBg : theme.secondaryBg }]}>
+                <View style={[s.sourceDot, { backgroundColor: dataSource === 'live' ? '#22C55E' : '#F59E0B' }]} />
+                <Text style={[s.sourceTxt, { color: dataSource === 'live' ? theme.primary : '#D97706' }]}>
+                  {dataSource === 'live' ? 'Live' : 'Cached'}
+                </Text>
+              </View>
+            )}
             {/* Language toggle */}
             <View style={s.langRow}>
               {LANG_OPTIONS.map(opt => (

@@ -237,6 +237,7 @@ export default function MandiDetailScreen() {
   const [mapLoading, setMapLoading] = useState(true);
   const [showMap,    setShowMap]    = useState(false);
   const [lang,       setLang]       = useState<Lang>((i18n.language as Lang) || 'gu');
+  const [dateLabel,  setDateLabel]  = useState<string>("Today's Data");
 
   const tl = useCallback((s: string) => translateLabel(s, lang), [lang]);
 
@@ -253,6 +254,7 @@ export default function MandiDetailScreen() {
       );
       // fetchByMarket already does strict market filtering + full pagination
       setPrices((res.data as MandiRecord[]) || []);
+      setDateLabel(res.dateLabel || "Today's Data");
       fadeAnim.setValue(0);
       Animated.timing(fadeAnim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
     } catch (e) {
@@ -367,10 +369,17 @@ export default function MandiDetailScreen() {
           </TouchableOpacity>
         ))}
         <View style={{ flex: 1 }} />
-        <View style={[s.liveChip, { backgroundColor: theme.primaryBg, borderColor: theme.primary + '40' }]}>
-          <View style={s.liveDot} />
-          <Text style={[s.liveTxt, { color: theme.primary }]}>Live</Text>
-        </View>
+        {dateLabel && dateLabel !== "Today's Data" ? (
+          <View style={[s.liveChip, { backgroundColor: isDark ? '#451a03' : '#fffbeb', borderColor: isDark ? '#78350f' : '#fde68a' }]}>
+            <Ionicons name="calendar-outline" size={11} color={isDark ? '#fbbf24' : '#b45309'} style={{ marginRight: 2 }} />
+            <Text style={[s.liveTxt, { color: isDark ? '#fbbf24' : '#b45309' }]}>{tl(dateLabel)}</Text>
+          </View>
+        ) : (
+          <View style={[s.liveChip, { backgroundColor: theme.primaryBg, borderColor: theme.primary + '40' }]}>
+            <View style={s.liveDot} />
+            <Text style={[s.liveTxt, { color: theme.primary }]}>Live</Text>
+          </View>
+        )}
       </View>
 
       {/* ── Map toggle ── */}
@@ -449,10 +458,17 @@ export default function MandiDetailScreen() {
               <Ionicons name="swap-vertical" size={13} color={theme.primary} />
               <Text style={[s.sortTxt, { color: theme.primary }]}>{tl(sortBy === 'price' ? 'Price' : 'Name')}</Text>
             </TouchableOpacity>
-            <View style={[s.liveChip, { backgroundColor: theme.primaryBg, borderColor: theme.primary + '40' }]}>
-              <View style={s.liveDot} />
-              <Text style={[s.liveTxt, { color: theme.primary }]}>Live</Text>
-            </View>
+            {dateLabel && dateLabel !== "Today's Data" ? (
+              <View style={[s.liveChip, { backgroundColor: isDark ? '#451a03' : '#fffbeb', borderColor: isDark ? '#78350f' : '#fde68a' }]}>
+                <Ionicons name="calendar-outline" size={11} color={isDark ? '#fbbf24' : '#b45309'} style={{ marginRight: 2 }} />
+                <Text style={[s.liveTxt, { color: isDark ? '#fbbf24' : '#b45309' }]}>{tl(dateLabel)}</Text>
+              </View>
+            ) : (
+              <View style={[s.liveChip, { backgroundColor: theme.primaryBg, borderColor: theme.primary + '40' }]}>
+                <View style={s.liveDot} />
+                <Text style={[s.liveTxt, { color: theme.primary }]}>Live</Text>
+              </View>
+            )}
           </View>
 
           {/* Hint */}

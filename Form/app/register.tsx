@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import KisanLogo from '../components/KisanLogo';
 import { authAPI } from '../services/api';
+import { toastService } from '../services/toastService';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import * as WebBrowser from 'expo-web-browser';
@@ -159,6 +160,7 @@ export default function RegisterScreen() {
          .catch(err => {
            setLoading(false);
            setErrorMsg(err.message || 'Google Login Failed');
+           toastService.error(err.message || 'Google Login Failed');
          });
       }
     }
@@ -204,6 +206,7 @@ export default function RegisterScreen() {
          .catch(err => {
            setLoading(false);
            setErrorMsg(err.message || 'Facebook Login Failed');
+           toastService.error(err.message || 'Facebook Login Failed');
          });
       }
     }
@@ -249,6 +252,7 @@ export default function RegisterScreen() {
               return;
             } else {
               setErrorMsg(res.message || 'Google Login Failed');
+              toastService.error(res.message || 'Google Login Failed');
               return;
             }
           } else {
@@ -268,6 +272,7 @@ export default function RegisterScreen() {
     } catch (err: any) {
       setLoading(false);
       setErrorMsg(err.message || 'Social login failed');
+      toastService.error(err.message || 'Social login failed');
     }
   };
 
@@ -283,6 +288,7 @@ export default function RegisterScreen() {
        }
     } catch (err: any) {
        setErrorMsg(err.message || 'Registration failed');
+       toastService.error(err.message || 'Registration failed');
     } finally {
        setLoading(false);
     }

@@ -6,6 +6,21 @@ import { getToken, getUser, removeToken, removeUser, saveUser, userAPI } from '.
 import { auth } from '../services/firebaseConfig';
 import { signOut } from 'firebase/auth';
 
+// Safe dynamic getter for native Google Sign-in to prevent evaluation crashes in Expo Go
+const getGoogleSignin = () => {
+  try {
+    const { TurboModuleRegistry } = require('react-native');
+    const nativeModule = TurboModuleRegistry.getEnforcing('RNGoogleSignin');
+    if (nativeModule && nativeModule.isMock) {
+      return null;
+    }
+    return require('@react-native-google-signin/google-signin').GoogleSignin;
+  } catch (e: any) {
+    console.warn('[Google SDK] Native GoogleSignin module not available in this binary:', e.message);
+    return null;
+  }
+};
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface UserProfile {
   id: string;
@@ -133,8 +148,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('Firebase signout failed', e);
     }
     try {
-      const { GoogleSignin } = require('@react-native-google-signin/google-signin');
-      await GoogleSignin.signOut();
+      const GoogleSignin = getGoogleSignin();
+      if (GoogleSignin) {
+        await GoogleSignin.signOut();
+      }
     } catch (e) {
       console.warn('Google Signin signout failed', e);
     }

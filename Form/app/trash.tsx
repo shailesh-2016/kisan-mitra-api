@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { machineAPI, profitAPI } from '../services/api';
+import { toastService } from '../services/toastService';
 
 type TabType = 'machines' | 'profits';
 
@@ -52,8 +53,9 @@ export default function TrashScreen() {
     try {
       await machineAPI.restore(id);
       setMachines(prev => prev.filter(m => m._id !== id));
+      toastService.success(t('trash.restored') || 'Restored successfully');
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      toastService.error(e.message || 'Error restoring machine');
     } finally {
       setActionLoading(null);
     }
@@ -64,8 +66,9 @@ export default function TrashScreen() {
     try {
       await profitAPI.restore(id);
       setProfits(prev => prev.filter(p => p._id !== id));
+      toastService.success(t('trash.restored') || 'Restored successfully');
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      toastService.error(e.message || 'Error restoring entry');
     } finally {
       setActionLoading(null);
     }
@@ -90,8 +93,9 @@ export default function TrashScreen() {
                 await profitAPI.permanentDelete(id);
                 setProfits(prev => prev.filter(p => p._id !== id));
               }
+              toastService.success(t('trash.deleted') || 'Deleted permanently');
             } catch (e: any) {
-              Alert.alert('Error', e.message);
+              toastService.error(e.message || 'Error deleting item');
             } finally {
               setActionLoading(null);
             }

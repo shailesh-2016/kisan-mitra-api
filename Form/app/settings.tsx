@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Switch, Linking, Share, ActivityIndicator,
@@ -14,7 +14,7 @@ import { LANGUAGES, changeLanguage } from '../i18n';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { useTheme } from '../context/ThemeContext';
-import { Toast } from '../components/Toast';
+import { toastService } from '../services/toastService';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { userAPI } from '../services/api';
 
@@ -103,7 +103,7 @@ export default function SettingsScreen() {
 
   const handleLanguageChange = async (code: string) => {
     await changeLanguage(code);
-    Toast.show({ type: 'success', text1: t('settings.langChanged') });
+    toastService.success(t('settings.langChanged'));
   };
 
   const handleDarkModeToggle = async (v: boolean) => {
@@ -127,9 +127,9 @@ export default function SettingsScreen() {
       const safe = ['@kisan_token','@kisan_user','@kisan_settings_v1','@kisan_app_language','@kisan_theme_v1'];
       const toRemove = keys.filter(k => !safe.includes(k));
       if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
-      Toast.show({ type: 'success', text1: t('settings.cacheCleared') });
+      toastService.success(t('settings.cacheCleared'));
     } catch {
-      Toast.show({ type: 'error', text1: t('settings.cacheFailed') });
+      toastService.error(t('settings.cacheFailed'));
     } finally {
       setClearingCache(false);
     }
@@ -289,7 +289,7 @@ export default function SettingsScreen() {
             right={clearingCache ? <ActivityIndicator size="small" color={theme.primary} /> : undefined} />
           <SettingRow icon="sync-outline" iconBg="#E3F2FD" iconColor="#1565C0"
             label={t('settings.syncData')} sublabel={t('settings.syncDataSub')}
-            onPress={() => Toast.show({ type: 'info', text1: t('settings.syncStarted') })} isLast />
+            onPress={() => toastService.info(t('settings.syncStarted'))} isLast />
         </Section>
 
         {/* SUPPORT */}

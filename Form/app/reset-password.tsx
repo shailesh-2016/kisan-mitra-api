@@ -11,6 +11,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import { authAPI } from '../services/api';
+import { toastService } from '../services/toastService';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ResetPasswordScreen() {
@@ -41,10 +42,11 @@ export default function ResetPasswordScreen() {
     setErrorMsg('');
     try {
       await authAPI.resetPassword(email, otp, password);
-      alert('Password reset successfully. You can now login.');
+      toastService.success('Password reset successfully. You can now login.');
       router.replace('/login');
     } catch (err: any) {
       setErrorMsg(err.message || 'Reset failed');
+      toastService.error(err.message || 'Reset failed');
     } finally {
       setLoading(false);
     }

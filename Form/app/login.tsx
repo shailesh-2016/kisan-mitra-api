@@ -113,6 +113,7 @@ export default function LoginScreen() {
          .catch(err => {
            setLoading(false);
            setErrorMsg(err.message || 'Google Login Failed');
+           toastService.error(err.message || 'Google Login Failed');
          });
       }
     }
@@ -158,6 +159,7 @@ export default function LoginScreen() {
          .catch(err => {
            setLoading(false);
            setErrorMsg(err.message || 'Facebook Login Failed');
+           toastService.error(err.message || 'Facebook Login Failed');
          });
       }
     }
@@ -256,6 +258,7 @@ export default function LoginScreen() {
               return;
             } else {
               setErrorMsg(res.message || 'Google Login Failed');
+              toastService.error(res.message || 'Google Login Failed');
               return;
             }
           } else {
@@ -275,6 +278,7 @@ export default function LoginScreen() {
     } catch (err: any) {
       setLoading(false);
       setErrorMsg(err.message || 'Social login failed');
+      toastService.error(err.message || 'Social login failed');
     }
   };
 

@@ -11,7 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { COLORS } from '../constants/theme';
 import { machineAPI } from '../services/api';
-import { Toast } from '../components/Toast';
+import { toastService } from '../services/toastService';
 import { ConfirmModal } from '../components/ConfirmModal';
 import PageHeader from '../components/PageHeader';
 
@@ -55,9 +55,9 @@ export default function MachineDetailScreen() {
     try {
       await machineAPI.deleteEntry(id!, eid);
       setEntries(prev => prev.filter((e: any) => (e._id || e.id) !== eid));
-      Toast.show({ type: 'success', text1: t('machine.entryDeleted'), visibilityTime: 1800 });
+      toastService.success(t('machine.entryDeleted'));
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: t('machine.deleteFailed'), text2: err.message });
+      toastService.error(t('machine.deleteFailed'), err.message);
     }
   };
 

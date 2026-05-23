@@ -13,6 +13,7 @@ import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { toastService } from '../services/toastService';
 
 const OTP_LENGTH = 6;
 
@@ -43,7 +44,7 @@ export default function OtpScreen() {
   const handleVerifyWithOtp = async (otpStr: string) => {
     if (otpStr.length < OTP_LENGTH || loading) return;
     if (!email) {
-      alert("Email is missing. Please try again.");
+      toastService.error("Email is missing. Please try again.");
       router.back();
       return;
     }
@@ -79,7 +80,7 @@ export default function OtpScreen() {
       }
       router.replace('/(tabs)' as any);
     } catch (err: any) {
-      alert(err.message || 'Invalid OTP');
+      toastService.error(err.message || 'Invalid OTP');
       setOtp('');
       hiddenInputRef.current?.focus();
     } finally {

@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import { authAPI } from '../services/api';
+import { toastService } from '../services/toastService';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ForgotPasswordScreen() {
@@ -39,6 +40,7 @@ export default function ForgotPasswordScreen() {
       router.push({ pathname: '/otp', params: { email, mode: 'reset' } } as any);
     } catch (err: any) {
       setErrorMsg(err.message || 'Something went wrong');
+      toastService.error(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }

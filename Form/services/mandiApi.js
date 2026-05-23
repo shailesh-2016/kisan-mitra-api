@@ -1,4 +1,4 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ── Data.gov.in Mandi Price API ───────────────────────────────────────────────
 const API_KEY     = '579b464db66ec23bdd000001052c14f0ffe34a0078f211bcb66705d8';
@@ -8,6 +8,55 @@ const TTL         = 60 * 60 * 1000; // 60 min cache
 
 const _cache     = {};
 const _geoCache  = {}; // district/market → { lat, lng }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// String Normalization Helper
+// ─────────────────────────────────────────────────────────────────────────────
+export function normalizeText(val) {
+  if (!val) return '';
+  return String(val)
+    .toLowerCase()
+    .replace(/\(apmc\)/g, '')
+    .replace(/apmc/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Date Normalization Helper
+// ─────────────────────────────────────────────────────────────────────────────
+export function normalizeDate(apiDate) {
+  if (!apiDate) return new Date(1970, 0, 1);
+  const clean = String(apiDate).trim();
+  
+  // Try split by '/' or '-'
+  const parts = clean.split(/[\/\-]/);
+  if (parts.length === 3) {
+    let day = 1, month = 1, year = 1970;
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      day = parseInt(parts[2], 10);
+    } else if (parts[2].length === 4) {
+      // DD-MM-YYYY
+      day = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      year = parseInt(parts[2], 10);
+    }
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return new Date(year, month - 1, day);
+    }
+  }
+  
+  // Try native parsing as fallback
+  const parsed = Date.parse(clean);
+  if (!isNaN(parsed)) {
+    return new Date(parsed);
+  }
+  
+  return new Date(1970, 0, 1);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PART 4: Haversine distance formula (km)
@@ -122,7 +171,7 @@ function mapRecord(r) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Core fetch with retry
 // ─────────────────────────────────────────────────────────────────────────────
-async function fetchPage({ state = '', district = '', market = '', limit = 500, offset = 0 } = {}, retries = 3) {
+async function fetchPage({ state = '', district = '', market = '', limit = 100, offset = 0 } = {}, retries = 3) {
   const params = new URLSearchParams({ 'api-key': API_KEY, format: 'json', limit: String(limit), offset: String(offset) });
   if (state)    params.append('filters[state]',    state);
   if (district) params.append('filters[district]', district);
@@ -141,79 +190,173 @@ async function fetchPage({ state = '', district = '', market = '', limit = 500, 
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Fetch Latest Available Mandi Data Helper
+// ─────────────────────────────────────────────────────────────────────────────
+export async function fetchLatestAvailableMandiData({ state = '', district = '', market = '' } = {}) {
+  console.log(`[Mandi Fetch] Fetching large dataset for state="${state}", district="${district}", market="${market}"...`);
+
+  let allRecords = [];
+  try {
+    const limit = 100;
+    let offset = 0;
+
+    // Fetch complete district/state data via offset loop
+    while (true) {
+      console.log(`[Mandi Fetch] Fetching page with offset ${offset}...`);
+      const res = await fetchPage({ state, district, limit, offset });
+      if (!res || !res.records || !Array.isArray(res.records) || res.records.length === 0) {
+        break;
+      }
+      allRecords = allRecords.concat(res.records);
+      if (res.records.length < limit) {
+        break;
+      }
+      offset += limit;
+    }
+  } catch (err) {
+    console.warn(`[Mandi Fetch] API fetch failed:`, err.message);
+  }
+
+  console.log(`[Mandi Fetch] Total raw records fetched: ${allRecords.length}`);
+  if (allRecords.length === 0) {
+    return null;
+  }
+
+  // Debug: Log unique market names
+  const uniqueMarkets = [...new Set(allRecords.map(r => r.market || r.Market).filter(Boolean))];
+  console.log(`[Mandi Fetch] Unique markets in dataset:`, uniqueMarkets);
+
+  // If a specific market is selected, let's filter to that market first to ensure we get its latest available date!
+  let targetRecords = allRecords;
+  if (market) {
+    const normTargetMarket = normalizeText(market);
+    const filteredByMarket = allRecords.filter(r => normalizeText(r.market || r.Market) === normTargetMarket);
+    if (filteredByMarket.length > 0) {
+      targetRecords = filteredByMarket;
+      console.log(`[Mandi Fetch] Filtered to target market "${market}" (${filteredByMarket.length} records)`);
+    } else {
+      console.log(`[Mandi Fetch] No exact match for market "${market}". Using full district/state dataset.`);
+    }
+  }
+
+  // Parse and sort unique arrival dates in target records
+  const dateMap = new Map(); // timestamp -> records
+  targetRecords.forEach(r => {
+    const arrivalDateStr = r.arrival_date || r.Arrival_Date || '';
+    if (!arrivalDateStr) return;
+    const parsedDate = normalizeDate(arrivalDateStr);
+    const ts = parsedDate.getTime();
+    if (!dateMap.has(ts)) {
+      dateMap.set(ts, { dateStr: arrivalDateStr, records: [] });
+    }
+    dateMap.get(ts).records.push(r);
+  });
+
+  const uniqueTimestamps = [...dateMap.keys()].sort((a, b) => b - a);
+  console.log(`[Mandi Fetch] Unique dates found in target dataset:`, uniqueTimestamps.map(ts => dateMap.get(ts).dateStr));
+
+  if (uniqueTimestamps.length === 0) {
+    console.log(`[Mandi Fetch] No valid dates found in target dataset.`);
+    return null;
+  }
+
+  // Get the latest available timestamp and its records
+  const latestTs = uniqueTimestamps[0];
+  const latestData = dateMap.get(latestTs);
+  console.log(`[Mandi Fetch] Resolved latest available date: ${latestData.dateStr}`);
+
+  // Format arrival date string for label
+  const formattedLatestDate = latestData.dateStr;
+
+  // Friendly date label logic: Compare resolved date with today/yesterday
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const resolvedDateObj = new Date(latestTs);
+  let friendlyLabel = `Latest Available Data: ${formattedLatestDate}`;
+
+  // Simple day comparison
+  const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+
+  if (isSameDay(resolvedDateObj, today)) {
+    friendlyLabel = "Today's Data";
+  } else if (isSameDay(resolvedDateObj, yesterday)) {
+    friendlyLabel = "Yesterday's Data";
+  } else {
+    // Check if 2 or 3 days old
+    const diffTime = Math.abs(today.getTime() - resolvedDateObj.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays <= 3) {
+      friendlyLabel = `Data from ${diffDays} days ago`;
+    }
+  }
+
+  return {
+    records: latestData.records,
+    dateLabel: friendlyLabel,
+    arrivalDate: formattedLatestDate
+  };
+}
+
 async function fetchAllPages({ state = '', district = '', market = '' } = {}) {
   const cacheKey = `${state}|${district}|${market}`.toLowerCase();
   const storageKey = `@mandi_${cacheKey}`;
 
   // 1. In-memory cache (fastest)
   if (_cache[cacheKey] && Date.now() - _cache[cacheKey].at < TTL) {
-    return { data: _cache[cacheKey].data, source: 'cache' };
+    return { data: _cache[cacheKey].data, dateLabel: _cache[cacheKey].dateLabel, source: 'cache' };
   }
 
   try {
-    const first = await fetchPage({ state, district, market, limit: 500, offset: 0 });
-    if (!first.records || !Array.isArray(first.records) || first.records.length === 0) {
-      // No live data — try persistent storage
-      const stored = await AsyncStorage.getItem(storageKey).catch(() => null);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.data?.length > 0) {
-          console.log(`[Mandi] Using stored data for ${cacheKey} (${parsed.data.length} records)`);
-          _cache[cacheKey] = { data: parsed.data, at: Date.now() - TTL + 5 * 60 * 1000 }; // keep 5 min
-          return { data: parsed.data, source: 'stored' };
-        }
-      }
-      return { data: [], source: 'empty' };
+    const result = await fetchLatestAvailableMandiData({ state, district, market });
+    
+    if (result && result.records.length > 0) {
+      const processed = result.records
+        .filter(r => (r.commodity || r.Commodity || '').trim().length > 0)
+        .map(mapRecord)
+        .filter((r, idx, arr) => {
+          const key = `${r.commodity}|${r.market}|${r.variety}`.toLowerCase();
+          return arr.findIndex(x => `${x.commodity}|${x.market}|${x.variety}`.toLowerCase() === key) === idx;
+        });
+
+      console.log(`[Mandi] Fetched ${result.records.length} raw → ${processed.length} unique records for ${cacheKey}`);
+
+      _cache[cacheKey] = { data: processed, dateLabel: result.dateLabel, at: Date.now() };
+      AsyncStorage.setItem(storageKey, JSON.stringify({ data: processed, dateLabel: result.dateLabel, savedAt: Date.now() })).catch(() => {});
+
+      return { data: processed, dateLabel: result.dateLabel, source: 'live' };
     }
 
-    const total      = parseInt(first.total || first.count || '0', 10) || first.records.length;
-    const pageSize   = 500;
-    const totalPages = Math.ceil(total / pageSize);
-    let all = [...first.records];
-
-    const BATCH = 6;
-    for (let start = 1; start < totalPages; start += BATCH) {
-      const end     = Math.min(start + BATCH, totalPages);
-      const offsets = Array.from({ length: end - start }, (_, i) => (start + i) * pageSize);
-      const results = await Promise.allSettled(offsets.map(o => fetchPage({ state, district, market, limit: pageSize, offset: o })));
-      for (const r of results) {
-        if (r.status === 'fulfilled' && Array.isArray(r.value?.records)) all = all.concat(r.value.records);
+    // Try persistent storage
+    const stored = await AsyncStorage.getItem(storageKey).catch(() => null);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.data?.length > 0) {
+        console.log(`[Mandi] Using stored data for ${cacheKey} (${parsed.data.length} records)`);
+        _cache[cacheKey] = { data: parsed.data, dateLabel: parsed.dateLabel || "Latest Available Data", at: Date.now() - TTL + 5 * 60 * 1000 };
+        return { data: parsed.data, dateLabel: parsed.dateLabel || "Latest Available Data", source: 'stored' };
       }
     }
-
-    const processed = all
-      .filter(r => (r.commodity || r.Commodity || '').trim().length > 0)
-      .map(mapRecord)
-      .filter((r, idx, arr) => {
-        const key = `${r.commodity}|${r.market}|${r.variety}`.toLowerCase();
-        return arr.findIndex(x => `${x.commodity}|${x.market}|${x.variety}`.toLowerCase() === key) === idx;
-      });
-
-    console.log(`[Mandi] Fetched ${all.length} raw → ${processed.length} unique records for ${cacheKey}`);
-
-    // Save to memory + persistent storage
-    _cache[cacheKey] = { data: processed, at: Date.now() };
-    AsyncStorage.setItem(storageKey, JSON.stringify({ data: processed, savedAt: Date.now() })).catch(() => {});
-
-    return { data: processed, source: 'live' };
+    
+    return { data: [], dateLabel: "No data found", source: 'empty' };
   } catch (err) {
     console.warn(`[Mandi] fetchAllPages error for ${cacheKey}:`, err?.message);
-
-    // Try persistent storage on error
     try {
       const stored = await AsyncStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.data?.length > 0) {
           console.log(`[Mandi] Using stored data after error for ${cacheKey}`);
-          _cache[cacheKey] = { data: parsed.data, at: Date.now() - TTL + 5 * 60 * 1000 };
-          return { data: parsed.data, source: 'stored' };
+          _cache[cacheKey] = { data: parsed.data, dateLabel: parsed.dateLabel || "Latest Available Data", at: Date.now() - TTL + 5 * 60 * 1000 };
+          return { data: parsed.data, dateLabel: parsed.dateLabel || "Latest Available Data", source: 'stored' };
         }
       }
     } catch {}
 
-    if (_cache[cacheKey]?.data) return { data: _cache[cacheKey].data, source: 'stale-cache' };
-    return { data: [], source: 'error' };
+    if (_cache[cacheKey]?.data) return { data: _cache[cacheKey].data, dateLabel: _cache[cacheKey].dateLabel, source: 'stale-cache' };
+    return { data: [], dateLabel: "Error loading data", source: 'error' };
   }
 }
 
@@ -247,40 +390,50 @@ export async function fetchStates() {
 export async function fetchByState(state)                  { return fetchAllPages({ state }); }
 export async function fetchByDistrict(state, district)     { return fetchAllPages({ state, district }); }
 
-/** Fetch ALL crops for a specific mandi — no record cap, strict market filter */
 export async function fetchByMarket(state, district, market) {
   const cacheKey = `mkt|${state}|${district}|${market}`.toLowerCase();
   if (_cache[cacheKey] && Date.now() - _cache[cacheKey].at < TTL) {
-    return { data: _cache[cacheKey].data, source: 'cache' };
+    return { data: _cache[cacheKey].data, dateLabel: _cache[cacheKey].dateLabel, source: 'cache' };
   }
   try {
-    const first = await fetchPage({ state, district, market, limit: 500, offset: 0 });
-    if (!first.records || !Array.isArray(first.records)) return { data: [], source: 'empty' };
+    const result = await fetchLatestAvailableMandiData({ state, district, market });
+    
+    if (result && result.records.length > 0) {
+      const mandiLower = normalizeText(market);
+      const processed = result.records.filter(r => (r.commodity || r.Commodity || '').trim().length > 0).map(mapRecord);
+      const strict = processed.filter(r => normalizeText(r.market) === mandiLower);
+      const final = strict.length > 0 ? strict : processed;
 
-    const total      = parseInt(first.total || first.count || '0', 10) || first.records.length;
-    const totalPages = Math.ceil(total / 500);
-    let all = [...first.records];
-
-    const BATCH = 8;
-    for (let start = 1; start < totalPages; start += BATCH) {
-      const end     = Math.min(start + BATCH, totalPages);
-      const offsets = Array.from({ length: end - start }, (_, i) => (start + i) * 500);
-      const results = await Promise.allSettled(offsets.map(o => fetchPage({ state, district, market, limit: 500, offset: o })));
-      for (const r of results) {
-        if (r.status === 'fulfilled' && Array.isArray(r.value?.records)) all = all.concat(r.value.records);
+      _cache[cacheKey] = { data: final, dateLabel: result.dateLabel, at: Date.now() };
+      
+      const storageKey = `@mandi_${cacheKey}`;
+      AsyncStorage.setItem(storageKey, JSON.stringify({ data: final, dateLabel: result.dateLabel, savedAt: Date.now() })).catch(() => {});
+      
+      return { data: final, dateLabel: result.dateLabel, source: 'live' };
+    }
+    
+    const storageKey = `@mandi_${cacheKey}`;
+    const stored = await AsyncStorage.getItem(storageKey).catch(() => null);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.data?.length > 0) {
+        console.log(`[Mandi Fallback] Using offline stored data for ${cacheKey}`);
+        return { data: parsed.data, dateLabel: parsed.dateLabel || "Latest Available Data", source: 'stored' };
       }
     }
-
-    const mandiLower = market.toLowerCase().trim();
-    const processed  = all.filter(r => (r.commodity || r.Commodity || '').trim().length > 0).map(mapRecord);
-    const strict     = processed.filter(r => r.market.toLowerCase().trim() === mandiLower);
-    const final      = strict.length > 0 ? strict : processed;
-
-    _cache[cacheKey] = { data: final, at: Date.now() };
-    return { data: final, source: 'live' };
+    
+    if (normalizeText(market).includes('ahmedabad')) {
+      const ahmedabadFallback = FALLBACK.filter(r => normalizeText(r.market).includes('ahmedabad'));
+      if (ahmedabadFallback.length > 0) {
+        return { data: ahmedabadFallback, dateLabel: "Latest Available Data", source: 'fallback' };
+      }
+    }
+    
+    return { data: [], dateLabel: "No data found", source: 'empty' };
   } catch (err) {
-    if (_cache[cacheKey]?.data) return { data: _cache[cacheKey].data, source: 'stale-cache' };
-    return { data: [], source: 'error' };
+    console.error(`[Mandi Fallback] fetchByMarket error:`, err);
+    if (_cache[cacheKey]?.data) return { data: _cache[cacheKey].data, dateLabel: _cache[cacheKey].dateLabel, source: 'stale-cache' };
+    return { data: [], dateLabel: "Error loading data", source: 'error' };
   }
 }
 

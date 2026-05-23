@@ -131,7 +131,7 @@ const UI_TEXTS: Record<string, any> = {
 };
 
 import { userAPI, removeToken, removeUser } from '../services/api';
-import { Toast } from '../components/Toast';
+import { toastService } from '../services/toastService';
 
 // ── Step indicator ────────────────────────────────────────────────────────────
 function StepDot({ step, current }: { step: number; current: number }) {
@@ -207,9 +207,9 @@ export default function DeleteAccountScreen() {
       setOtpSent(true);
       setResendSec(30);
       setStep(3);
-      Toast.show({ type: 'info', text1: `${UI_TEXTS[currentLang]?.toastOtpSent} ${user?.email}` });
+      toastService.info(`${UI_TEXTS[currentLang]?.toastOtpSent} ${user?.email}`);
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.message || 'Failed to send OTP' });
+      toastService.error(err.message || 'Failed to send OTP');
     } finally {
       setSendingOtp(false);
     }
@@ -240,11 +240,11 @@ export default function DeleteAccountScreen() {
       await removeToken();
       await removeUser();
       setUser(null);
-      Toast.show({ type: 'success', text1: UI_TEXTS[currentLang]?.toastDeleteSuccess });
+      toastService.success(UI_TEXTS[currentLang]?.toastDeleteSuccess);
       router.replace('/(tabs)' as any);
     } catch (err: any) {
       shake();
-      Toast.show({ type: 'error', text1: err.message || UI_TEXTS[currentLang]?.toastInvalidOtp });
+      toastService.error(err.message || UI_TEXTS[currentLang]?.toastInvalidOtp);
       setOtp(Array(OTP_LEN).fill(''));
       inputRefs.current[0]?.focus();
     } finally {
@@ -258,9 +258,9 @@ export default function DeleteAccountScreen() {
     inputRefs.current[0]?.focus();
     try {
       await userAPI.requestDeleteOtp();
-      Toast.show({ type: 'info', text1: UI_TEXTS[currentLang]?.toastNewOtp });
+      toastService.info(UI_TEXTS[currentLang]?.toastNewOtp);
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.message });
+      toastService.error(err.message);
     }
   };
 
