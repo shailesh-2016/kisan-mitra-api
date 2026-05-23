@@ -287,7 +287,7 @@ export default function ProfileScreen() {
             {/* Guest card */}
             <View style={[styles.guestCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}>
               <Image
-                source={require('../../assets/images/guest_banner.png')}
+                source={require('../../assets/images/guest_banner.jpg')}
                 style={styles.guestBannerImage}
                 resizeMode="cover"
               />
