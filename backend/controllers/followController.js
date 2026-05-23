@@ -10,29 +10,31 @@ const followUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot follow yourself' });
     }
 
-    const [me, target] = await Promise.all([
-      User.findById(myId),
-      User.findById(targetId),
-    ]);
-
+    const target = await User.findById(targetId).select('name followers');
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const alreadyFollowing = me.following.some(id => id.toString() === targetId);
+    const alreadyFollowing = await User.exists({
+      _id: myId,
+      following: targetId,
+    });
+
     if (alreadyFollowing) {
       return res.status(400).json({ success: false, message: 'Already following' });
     }
 
-    me.following.push(targetId);
-    target.followers.push(myId);
+    // Atomic update — no full-document validation, safe for social-login users
+    await Promise.all([
+      User.updateOne({ _id: myId },     { $addToSet: { following: targetId } }),
+      User.updateOne({ _id: targetId }, { $addToSet: { followers: myId } }),
+    ]);
 
-    await Promise.all([me.save(), target.save()]);
-
-    console.log(`[Follow] ${myId} → ${targetId} | me.following: ${me.following.length}`);
+    const updated = await User.findById(targetId).select('followers');
+    console.log(`[Follow] ${myId} → ${targetId}`);
 
     res.json({
       success: true,
       message: `Now following ${target.name}`,
-      followersCount: target.followers.length,
+      followersCount: updated.followers.length,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -45,27 +47,27 @@ const unfollowUser = async (req, res) => {
     const targetId = req.params.id;
     const myId     = req.user._id.toString();
 
-    const [me, target] = await Promise.all([
-      User.findById(myId),
-      User.findById(targetId),
-    ]);
-
+    const target = await User.findById(targetId).select('name followers');
     if (!target) return res.status(404).json({ success: false, message: 'User not found' });
 
-    me.following = me.following.filter(id => id.toString() !== targetId);
-    target.followers = target.followers.filter(id => id.toString() !== myId);
+    // Atomic update — no full-document validation
+    await Promise.all([
+      User.updateOne({ _id: myId },     { $pull: { following: targetId } }),
+      User.updateOne({ _id: targetId }, { $pull: { followers: myId } }),
+    ]);
 
-    await Promise.all([me.save(), target.save()]);
+    const updated = await User.findById(targetId).select('followers');
 
     res.json({
       success: true,
       message: `Unfollowed ${target.name}`,
-      followersCount: target.followers.length,
+      followersCount: updated.followers.length,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // ── GET /api/followers/:id ────────────────────────────────────────────────────
 const getFollowers = async (req, res) => {

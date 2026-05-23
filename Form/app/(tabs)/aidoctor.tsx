@@ -10,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'expo-router';
 import Button from '../../components/Button';
 import FloatingMicButton from '../../components/FloatingMicButton';
 import PageHeader from '../../components/PageHeader';
@@ -18,6 +20,8 @@ export default function AIDoctorScreen() {
   const { t } = useTranslation();
   const [uploaded, setUploaded] = useState(false);
   const { theme, isDark } = useTheme();
+  const { isLoggedIn } = useAuth();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={['top']}>
@@ -128,7 +132,7 @@ export default function AIDoctorScreen() {
         <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* ── Coming Soon Overlay (on top of everything) ── */}
+      {/* ── Auth Guard Overlay (replaces Coming Soon when logged out) ── */}
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
         <BlurView
           intensity={22}
@@ -141,15 +145,39 @@ export default function AIDoctorScreen() {
             colors={isDark ? ['#1B2E1C', '#1F3320'] : ['#FFFFFF', '#F0FBF1']}
             style={styles.comingSoonCard}
           >
-            <View style={styles.csIconCircle}>
-              <Ionicons name="construct-outline" size={36} color={COLORS.primary} />
-            </View>
-            <Text style={[styles.csTitle, { color: isDark ? '#fff' : COLORS.text }]}>{t('ai.comingSoonTitle')}</Text>
-            <Text style={styles.csSubtitle}>{t('ai.comingSoonSubtitle')}</Text>
-            <View style={styles.csBadge}>
-              <Ionicons name="time-outline" size={13} color={COLORS.primary} />
-              <Text style={styles.csBadgeText}>{t('ai.inDevelopment')}</Text>
-            </View>
+            {isLoggedIn ? (
+              // Coming Soon card for logged-in users
+              <>
+                <View style={styles.csIconCircle}>
+                  <Ionicons name="construct-outline" size={36} color={COLORS.primary} />
+                </View>
+                <Text style={[styles.csTitle, { color: isDark ? '#fff' : COLORS.text }]}>{t('ai.comingSoonTitle')}</Text>
+                <Text style={styles.csSubtitle}>{t('ai.comingSoonSubtitle')}</Text>
+                <View style={styles.csBadge}>
+                  <Ionicons name="time-outline" size={13} color={COLORS.primary} />
+                  <Text style={styles.csBadgeText}>{t('ai.inDevelopment')}</Text>
+                </View>
+              </>
+            ) : (
+              // Login Required card for guests
+              <>
+                <View style={[styles.csIconCircle, { backgroundColor: '#FFF7ED' }]}>
+                  <Ionicons name="lock-closed" size={36} color="#D97706" />
+                </View>
+                <Text style={[styles.csTitle, { color: isDark ? '#fff' : COLORS.text }]}>Login Required</Text>
+                <Text style={styles.csSubtitle}>Please login to access AI Doctor and diagnose your crops</Text>
+                <View pointerEvents="box-none">
+                  <TouchableOpacity
+                    onPress={() => router.push('/login' as any)}
+                    style={[styles.csBadge, { backgroundColor: COLORS.primary, paddingVertical: 10, paddingHorizontal: 20 }]}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="log-in-outline" size={16} color="#fff" />
+                    <Text style={[styles.csBadgeText, { color: '#fff', fontSize: 14 }]}>Login Now</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </LinearGradient>
         </View>
       </View>

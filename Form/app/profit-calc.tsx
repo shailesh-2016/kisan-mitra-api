@@ -9,12 +9,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Toast } from '../components/Toast';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { COLORS } from '../constants/theme';
 import { profitAPI } from '../services/api';
 import PageHeader from '../components/PageHeader';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { requireAuth } from '../utils/authGuard';
+import { toastService } from '../services/toastService';
 
 const { width: SW } = Dimensions.get('window');
 void SW; // suppress unused warning
@@ -178,6 +180,7 @@ export default function ProfitCalcScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'calc' | 'history'>('calc');
   const { theme, isDark } = useTheme();
+  const { isLoggedIn } = useAuth();
 
   const [selectedCrop, setSelectedCrop] = useState('wheat');
   const [customCrop, setCustomCrop]     = useState('');
@@ -229,7 +232,7 @@ export default function ProfitCalcScreen() {
     const totalCost = [seed, fert, labour, irrig, other].reduce((s, v) => s + (parseFloat(v) || 0), 0);
     const totalIncome = (parseFloat(prod) || 0) * effectivePrice;
     if (totalIncome === 0 && totalCost === 0) {
-      Toast.show({ type: 'error', text1: t('calc.enterValue') }); return;
+      toastService.warning(t('calc.enterValue')); return;
     }
     const netProfit = totalIncome - totalCost;
     const acreVal = parseFloat(acre);
@@ -246,6 +249,8 @@ export default function ProfitCalcScreen() {
 
   const saveCalc = async () => {
     if (!result || saving) return;
+    // Require login to save
+    if (!requireAuth(isLoggedIn, 'Profit Calculator')) return;
     setSaving(true);
     try {
       const data = await profitAPI.calculate({
@@ -262,12 +267,12 @@ export default function ProfitCalcScreen() {
         netProfit: result.netProfit, perAcreProfit: result.perAcreProfit,
       };
       setHistory(prev => [saved, ...prev]);
-      Toast.show({ type: 'success', text1: '✅ ' + t('calc.saved'), text2: `₹${Math.abs(result.netProfit).toLocaleString('en-IN')}`, visibilityTime: 2500 });
+      toastService.success(t('calc.saved'), `₹${Math.abs(result.netProfit).toLocaleString('en-IN')}`);
       setSeed(''); setFert(''); setLabour(''); setIrrig('');
       setOther(''); setProd(''); setPrice(''); setAcre('');
       setCustomCrop(''); setResult(null);
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: 'Save failed', text2: err.message || 'Please login to save' });
+      toastService.error('Save failed', err.message || 'Please login to save');
     } finally { setSaving(false); }
   };
 
@@ -281,14 +286,14 @@ export default function ProfitCalcScreen() {
     setConfirmDeleteId(null);
     try { await profitAPI.delete(id); } catch {}
     setHistory(prev => prev.filter(h => h.id !== id));
-    Toast.show({ type: 'success', text1: t('calc.recordDeleted'), visibilityTime: 1800 });
+    toastService.success(t('calc.recordDeleted'));
   };
 
   const reset = () => {
     setSeed(''); setFert(''); setLabour(''); setIrrig('');
     setOther(''); setProd(''); setPrice(''); setAcre('');
     setCustomCrop(''); setResult(null);
-    Toast.show({ type: 'info', text1: 'Form cleared', visibilityTime: 1000 });
+    toastService.info('Form cleared');
   };
 
   const getInsight = (profit: number, income: number) => {
@@ -324,7 +329,11 @@ export default function ProfitCalcScreen() {
           {(['calc','history'] as const).map(tab => (
             <TouchableOpacity key={tab}
               style={[s.tab, activeTab === tab && [s.tabActive, { backgroundColor: theme.surface }]]}
-              onPress={() => { setActiveTab(tab); if (tab === 'history') loadHistory(false); }}
+              onPress={() => {
+                if (tab === 'history' && !requireAuth(isLoggedIn, 'Profit History')) return;
+                setActiveTab(tab);
+                if (tab === 'history') loadHistory(false);
+              }}
               activeOpacity={0.85}>
               <Ionicons name={tab === 'calc' ? 'calculator-outline' : 'time-outline'} size={14}
                 color={activeTab === tab ? COLORS.primary : '#9CA3AF'} />

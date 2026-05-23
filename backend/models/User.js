@@ -16,8 +16,9 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
+    // Only required when creating a new local-login user
     required: function() {
-      return this.provider === 'local';
+      return this.isNew && this.provider === 'local';
     },
   },
   provider: {

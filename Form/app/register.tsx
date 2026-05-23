@@ -13,11 +13,27 @@ import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import KisanLogo from '../components/KisanLogo';
 import { authAPI } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as Facebook from 'expo-auth-session/providers/facebook';
 
 WebBrowser.maybeCompleteAuthSession();
+
+// Safe dynamic getter for native Google Sign-in to prevent evaluation crashes in Expo Go
+const getGoogleSignin = () => {
+  try {
+    const { TurboModuleRegistry } = require('react-native');
+    const nativeModule = TurboModuleRegistry.getEnforcing('RNGoogleSignin');
+    if (nativeModule && nativeModule.isMock) {
+      return null;
+    }
+    return require('@react-native-google-signin/google-signin').GoogleSignin;
+  } catch (e: any) {
+    console.warn('[Google SDK] Native GoogleSignin module not available in this binary:', e.message);
+    return null;
+  }
+};
 
 // ── Reusable Field ────────────────────────────────────────────────────────────
 function Field({ label, value, onChange, placeholder, icon, iconColor = COLORS.primary, keyboardType = 'default', secureTextEntry = false, autoCapitalize = 'none' }: {
@@ -72,9 +88,25 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const { theme, isDark } = useTheme();
+  const { setUser } = useAuth();
 
   const isValid = name.trim().length > 1 && email.includes('@') && password.length >= 8 && password === confirmPassword;
-  const { theme, isDark } = useTheme();
+
+  // Configure Native Google Sign-In if available
+  useEffect(() => {
+    try {
+      const GoogleSignin = getGoogleSignin();
+      if (GoogleSignin) {
+        GoogleSignin.configure({
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '817116410879-7rfit9e02c3nk97pk3gbud0t0bp4io4b.apps.googleusercontent.com',
+          offlineAccess: true,
+        });
+      }
+    } catch (e) {
+      console.warn('GoogleSignin config error:', e);
+    }
+  }, []);
 
   // Social Login Hooks
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
@@ -98,11 +130,31 @@ export default function RegisterScreen() {
          })
          .then(res => res.json())
          .then(data => {
-           return authAPI.googleLogin(data.email, data.name, data.picture, authentication.accessToken);
+           return authAPI.googleLogin(data.email, data.name, data.picture, data.id);
          })
          .then(res => { 
            setLoading(false);
-           if (res.success) router.replace('/(tabs)' as any); 
+           if (res.success && res.user) {
+             const u = res.user;
+             setUser({
+               id:             u._id || u.id,
+               name:           u.name         || '',
+               email:          u.email        || '',
+               village:        u.village      || '',
+               district:       u.district     || '',
+               state:          u.state        || '',
+               bio:            u.bio          || '',
+               profileImage:   u.profileImage || '',
+               coverImage:     u.coverImage   || '',
+               language:       u.language     || 'gu',
+               farmSize:       u.farmSize     || '',
+               cropsGrown:     u.cropsGrown   || '',
+               experience:     u.experience   || '',
+               followersCount: Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0),
+               followingCount: Array.isArray(u.following) ? u.following.length : (u.followingCount || 0),
+             });
+             router.replace('/(tabs)' as any); 
+           }
          })
          .catch(err => {
            setLoading(false);
@@ -123,11 +175,31 @@ export default function RegisterScreen() {
          .then(data => {
            const email = data.email || `${data.id}@facebook.com`;
            const picture = data.picture?.data?.url || '';
-           return authAPI.facebookLogin(email, data.name, picture, authentication.accessToken);
+           return authAPI.facebookLogin(email, data.name, picture, data.id);
          })
          .then(res => { 
            setLoading(false);
-           if (res.success) router.replace('/(tabs)' as any); 
+           if (res.success && res.user) {
+             const u = res.user;
+             setUser({
+               id:             u._id || u.id,
+               name:           u.name         || '',
+               email:          u.email        || '',
+               village:        u.village      || '',
+               district:       u.district     || '',
+               state:          u.state        || '',
+               bio:            u.bio          || '',
+               profileImage:   u.profileImage || '',
+               coverImage:     u.coverImage   || '',
+               language:       u.language     || 'gu',
+               farmSize:       u.farmSize     || '',
+               cropsGrown:     u.cropsGrown   || '',
+               experience:     u.experience   || '',
+               followersCount: Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0),
+               followingCount: Array.isArray(u.following) ? u.following.length : (u.followingCount || 0),
+             });
+             router.replace('/(tabs)' as any); 
+           }
          })
          .catch(err => {
            setLoading(false);
@@ -139,12 +211,62 @@ export default function RegisterScreen() {
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     try {
+      setErrorMsg('');
       if (provider === 'google') {
-        await googlePromptAsync();
+        setLoading(true);
+        try {
+          const GoogleSignin = getGoogleSignin();
+          if (!GoogleSignin) {
+            throw new Error('Google Sign-in native module not available');
+          }
+          await GoogleSignin.hasPlayServices();
+          const userInfo = (await GoogleSignin.signIn()) as any;
+          const userObj = userInfo.data || userInfo;
+          if (userObj && userObj.user) {
+            const { email, name, photo, id } = userObj.user;
+            const res = await authAPI.googleLogin(email, name, photo || '', id);
+            setLoading(false);
+            if (res.success && res.user) {
+              const u = res.user;
+              setUser({
+                id:             u._id || u.id,
+                name:           u.name         || '',
+                email:          u.email        || '',
+                village:        u.village      || '',
+                district:       u.district     || '',
+                state:          u.state        || '',
+                bio:            u.bio          || '',
+                profileImage:   u.profileImage || '',
+                coverImage:     u.coverImage   || '',
+                language:       u.language     || 'gu',
+                farmSize:       u.farmSize     || '',
+                cropsGrown:     u.cropsGrown   || '',
+                experience:     u.experience   || '',
+                followersCount: Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0),
+                followingCount: Array.isArray(u.following) ? u.following.length : (u.followingCount || 0),
+              });
+              router.replace('/(tabs)' as any);
+              return;
+            } else {
+              setErrorMsg(res.message || 'Google Login Failed');
+              return;
+            }
+          } else {
+            throw new Error('Google Sign-in did not return user information');
+          }
+        } catch (nativeErr: any) {
+          console.log('[Google SDK] Native sign in failed/unavailable, falling back to AuthSession:', nativeErr?.message);
+          // Fallback to Expo Auth Session (WebBrowser)
+          const result = await googlePromptAsync();
+          if (result.type !== 'success') {
+            setLoading(false);
+          }
+        }
       } else {
         await fbPromptAsync();
       }
     } catch (err: any) {
+      setLoading(false);
       setErrorMsg(err.message || 'Social login failed');
     }
   };

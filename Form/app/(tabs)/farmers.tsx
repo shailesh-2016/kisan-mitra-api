@@ -14,6 +14,8 @@ import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../../constants/them
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { socialAPI } from '../../services/api';
+import { requireAuth } from '../../utils/authGuard';
+import { toastService } from '../../services/toastService';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -414,15 +416,14 @@ export default function FarmersScreen() {
     setAllFarmers(prev => toggle(prev));
     setDisplayFarmers(prev => toggle(prev));
 
-    // Skip API for mock data (numeric IDs) or when not logged in
+    // Mock data (numeric IDs) — no auth needed
     const isMockId = /^\d+$/.test(id);
     if (isMockId) {
-      // Save/remove mock follow to AsyncStorage so social profile can show it
+      if (!wasFollowing) toastService.followed(farmer.name);
       try {
         const raw = await AsyncStorage.getItem('@kisan_mock_following');
         let list: any[] = raw ? JSON.parse(raw) : [];
         if (!wasFollowing) {
-          // Add to following if not already there
           if (!list.find((f: any) => (f._id || f.id) === id)) {
             list.push({
               _id:          id,
@@ -443,13 +444,8 @@ export default function FarmersScreen() {
       return;
     }
 
-    if (!isLoggedIn) return;
-
-    try {
-      if (wasFollowing) await socialAPI.unfollow(id);
-      else await socialAPI.follow(id);
-    } catch {
-      // revert
+    // Real API — require login
+    if (!requireAuth(isLoggedIn, 'Follow Farmers')) {
       const revert = (list: Farmer[]) =>
         list.map(f =>
           f._id === id
@@ -458,6 +454,26 @@ export default function FarmersScreen() {
         );
       setAllFarmers(prev => revert(prev));
       setDisplayFarmers(prev => revert(prev));
+      return;
+    }
+
+    try {
+      if (wasFollowing) {
+        await socialAPI.unfollow(id);
+      } else {
+        await socialAPI.follow(id);
+        toastService.followed(farmer.name);
+      }
+    } catch {
+      const revert = (list: Farmer[]) =>
+        list.map(f =>
+          f._id === id
+            ? { ...f, isFollowing: wasFollowing, followersCount: farmer.followersCount }
+            : f
+        );
+      setAllFarmers(prev => revert(prev));
+      setDisplayFarmers(prev => revert(prev));
+      toastService.networkError();
     }
   }, [allFarmers, displayFarmers, isLoggedIn]);
 

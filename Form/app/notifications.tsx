@@ -13,6 +13,7 @@ import { useFocusEffect } from 'expo-router';
 import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { requireAuth } from '../utils/authGuard';
 import {
   AppNotification, NotifCategory, NotifPriority,
   loadNotifications, markAllRead, deleteNotification,
@@ -302,11 +303,13 @@ export default function NotificationsScreen() {
   };
 
   const handleMarkAllRead = async () => {
+    if (!requireAuth(isLoggedIn, 'Notifications')) return;
     await markAllRead();
     setNotifs(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const handleClearAll = () => {
+    if (!requireAuth(isLoggedIn, 'Notifications')) return;
     Alert.alert(
       t('notif.clearAllTitle'),
       t('notif.clearAllMsg'),

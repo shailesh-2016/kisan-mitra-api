@@ -29,6 +29,8 @@ import { cancelTaskNotif, scheduleTaskNotif, requestNotifPermission } from '../s
 import PageHeader from '../components/PageHeader';
 import ReminderAlertModal from '../components/ReminderAlertModal';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { requireAuth } from '../utils/authGuard';
 
 const { width: W } = Dimensions.get('window');
 
@@ -391,6 +393,7 @@ export default function RemindersScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { theme, isDark } = useTheme();
+  const { isLoggedIn } = useAuth();
   const [tasks, setTasks] = useState<ReminderTask[]>([]);
 
   // Alert modal state
@@ -572,6 +575,7 @@ export default function RemindersScreen() {
           style={s.fab}
           activeOpacity={0.85}
           onPress={() => {
+            if (!requireAuth(isLoggedIn, 'Smart Reminder')) return;
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
             router.push('/add-reminder' as any);
           }}

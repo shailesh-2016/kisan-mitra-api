@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   StatusBar, ActivityIndicator, RefreshControl, Linking,
@@ -562,9 +562,6 @@ const s = StyleSheet.create({
   searchMiniInput:  { flex: 1, fontSize: 12, color: COLORS.text, padding: 0 },
   sortBtn:          { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primaryBg, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
   sortTxt:          { fontSize: 11, color: COLORS.primary, fontWeight: '700' },
-  liveChip:         { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 },
-  liveDot:          { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.primary },
-  liveTxt:          { fontSize: 10, color: COLORS.primary, fontWeight: '800' },
 
   hintBar:          { flexDirection: 'row', alignItems: 'center', gap: 5, marginHorizontal: 14, marginTop: 6, backgroundColor: '#EEF7EE', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   hintTxt:          { fontSize: 11, color: COLORS.primary, fontWeight: '500' },

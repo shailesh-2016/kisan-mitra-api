@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { mandiAPI } from '../../services/api';
 import { fetchMandiPrices, getDistricts } from '../../services/mandiApi';
 import { loadNotifications } from '../../services/notificationService';
+import { requireAuth } from '../../utils/authGuard';
 
 // ── MandiPriceStrip ───────────────────────────────────────────────────────────
 interface MandiItem { commodity: string; pricePerKg: number; modalPrice: number; emoji: string; minPrice: number; maxPrice: number; }
@@ -209,11 +210,19 @@ const GRID_CARDS = [
   },
 ];
 
+// ── Protected routes (require login) ─────────────────────────────────────────
+const PROTECTED_KEYS = new Set(['machine', 'reminder', 'profit']);
+const FEATURE_NAMES: Record<string, string> = {
+  machine:  'Machine Tracker',
+  reminder: 'Smart Reminder',
+  profit:   'Profit Calculator',
+};
+
 export default function HomeScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { theme, isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
 
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -230,6 +239,23 @@ export default function HomeScreen() {
     profit: '/profit-calc',
     machine: '/machines',
     reminder: '/reminders',
+  };
+
+  const handleCardPress = (key: string) => {
+    const route = CARD_ROUTES[key];
+    if (!route) return;
+    if (PROTECTED_KEYS.has(key) && !requireAuth(isLoggedIn, FEATURE_NAMES[key] ?? key)) return;
+    router.push(route as any);
+  };
+
+  const handleNotificationsPress = () => {
+    if (!requireAuth(isLoggedIn, 'Notifications')) return;
+    router.push('/notifications' as any);
+  };
+
+  const handleAIDoctorPress = () => {
+    if (!requireAuth(isLoggedIn, 'AI Doctor')) return;
+    router.push('/(tabs)/aidoctor' as any);
   };
 
   return (
@@ -264,7 +290,7 @@ export default function HomeScreen() {
               key={item.id}
               activeOpacity={0.82}
               style={styles.gridCardWrap}
-              onPress={() => CARD_ROUTES[item.key] && router.push(CARD_ROUTES[item.key] as any)}
+              onPress={() => handleCardPress(item.key)}
             >
               <LinearGradient
                 colors={item.grad}
@@ -297,7 +323,8 @@ export default function HomeScreen() {
         {/* ── Quick Actions ── */}
         <Text style={[styles.sectionTitle2, { color: theme.text }]}>{t('home.quickActions')}</Text>
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85}
+            onPress={() => requireAuth(isLoggedIn, 'Scan Crop') && router.push('/(tabs)/aidoctor' as any)}>
             <LinearGradient
               colors={['#166534', '#15803D']}
               start={{ x: 0, y: 0 }}
@@ -317,7 +344,7 @@ export default function HomeScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.quickBtn} activeOpacity={0.85} onPress={handleAIDoctorPress}>
             <LinearGradient
               colors={['#C2410C', '#EA580C']}
               start={{ x: 0, y: 0 }}

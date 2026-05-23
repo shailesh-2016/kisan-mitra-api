@@ -132,6 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn('Firebase signout failed', e);
     }
+    try {
+      const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+      await GoogleSignin.signOut();
+    } catch (e) {
+      console.warn('Google Signin signout failed', e);
+    }
     await removeToken();
     await removeUser();
     setUser(null);

@@ -132,6 +132,8 @@ export default function SocialProfileScreen() {
 
   const followBtnScale = useRef(new Animated.Value(1)).current;
   const isOwnProfile = true;
+  const isFollowing = false;
+  const handleMainFollow = () => {};
 
   // ── Load posts ──
   const loadPosts = useCallback(async () => {

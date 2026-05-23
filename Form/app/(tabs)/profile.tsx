@@ -13,6 +13,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { LANGUAGES, changeLanguage, getStoredLanguage } from '../../i18n';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../context/AuthContext';
+import { requireAuth } from '../../utils/authGuard';
+import { toastService } from '../../services/toastService';
 
 // ── Menu groups (only shown when logged in) ───────────────────────────────────
 const MENU_GROUPS = [
@@ -61,6 +63,7 @@ export default function ProfileScreen() {
     setLoggingOut(true);
     await logout();
     setLoggingOut(false);
+    toastService.logoutSuccess();
   };
 
   // ── Loading splash ──
@@ -88,7 +91,10 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={styles.editBtn}
               activeOpacity={0.8}
-              onPress={() => router.push('/edit-profile' as any)}
+              onPress={() => {
+                if (!requireAuth(isLoggedIn, 'Edit Profile')) return;
+                router.push('/edit-profile' as any);
+              }}
             >
               <Ionicons name="pencil" size={16} color={COLORS.primary} />
             </TouchableOpacity>
@@ -143,7 +149,10 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={[styles.socialProfileBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
               activeOpacity={0.85}
-              onPress={() => router.push('/social-profile' as any)}
+              onPress={() => {
+                if (!requireAuth(isLoggedIn, 'Social Profile')) return;
+                router.push('/social-profile' as any);
+              }}
             >
               <LinearGradient colors={['#1B5E20', '#43A047']} style={styles.socialProfileIconWrap}>
                 <Ionicons name="people" size={18} color={COLORS.white} />
@@ -276,17 +285,19 @@ export default function ProfileScreen() {
           /* ── NOT LOGGED IN ── */
           <>
             {/* Guest card */}
-            <View style={styles.guestCard}>
-              <LinearGradient
-                colors={['#E8F5E9', '#F1F8E9']}
-                style={styles.guestGrad}
-              >
-                <View style={styles.guestAvatarWrap}>
-                  <Ionicons name="person-circle-outline" size={72} color={COLORS.primary} />
+            <View style={[styles.guestCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}>
+              <Image
+                source={require('../../assets/images/guest_banner.png')}
+                style={styles.guestBannerImage}
+                resizeMode="cover"
+              />
+              <View style={styles.guestContent}>
+                <View style={[styles.guestAvatarWrap, { backgroundColor: theme.surface, borderColor: theme.surface }]}>
+                  <Ionicons name="person-circle" size={54} color={COLORS.primary} />
                 </View>
-                <Text style={styles.guestTitle}>{t('profile.guestTitle')}</Text>
-                <Text style={styles.guestSubtitle}>{t('profile.guestSubtitle')}</Text>
-              </LinearGradient>
+                <Text style={[styles.guestTitle, { color: theme.text }]}>{t('profile.guestTitle')}</Text>
+                <Text style={[styles.guestSubtitle, { color: theme.textSecondary }]}>{t('profile.guestSubtitle')}</Text>
+              </View>
             </View>
 
             {/* Auth buttons */}
@@ -439,19 +450,21 @@ const styles = StyleSheet.create({
   guestCard: {
     marginHorizontal: 16, marginTop: 16,
     borderRadius: 20, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
-  guestGrad: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 24 },
+  guestBannerImage: { width: '100%', height: 130 },
+  guestContent: { alignItems: 'center', paddingHorizontal: 20, paddingBottom: 24 },
   guestAvatarWrap: {
-    width: 96, height: 96, borderRadius: 48,
+    width: 68, height: 68, borderRadius: 34,
     backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+    marginTop: -34, marginBottom: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+    borderWidth: 3, borderColor: '#FFFFFF',
   },
-  guestTitle: { fontSize: FONT_SIZE.xl, fontWeight: '800', color: COLORS.text, marginBottom: 6 },
-  guestSubtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+  guestTitle: { fontSize: 18, fontWeight: '800', color: COLORS.text, marginBottom: 6, textAlign: 'center' },
+  guestSubtitle: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 18 },
 
   // ── Auth Buttons ──
   authSection: {

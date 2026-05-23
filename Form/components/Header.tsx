@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, FONT_SIZE, RADIUS } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { requireAuth } from '../utils/authGuard';
 import {
   fetchCurrentWeather,
   owmIconToIonicons,
@@ -40,6 +42,7 @@ export default function Header({
   const router = useRouter();
   const { t }  = useTranslation();
   const { theme, isDark, toggleTheme } = useTheme();
+  const { isLoggedIn } = useAuth();
 
   const [weather, setWeather] = useState<WeatherData | null>(_weatherCache);
   const [loading, setLoading] = useState(!_weatherCache);
@@ -126,7 +129,10 @@ export default function Header({
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionBtn, { backgroundColor: theme.inputBg, borderColor: theme.border }]} 
-            onPress={() => router.push('/notifications')}
+            onPress={() => {
+              if (!requireAuth(isLoggedIn, 'Notifications')) return;
+              router.push('/notifications');
+            }}
             activeOpacity={0.7}
           >
             <Ionicons name="notifications-outline" size={20} color="#374151" />

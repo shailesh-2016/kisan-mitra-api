@@ -9,13 +9,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Toast } from '../components/Toast';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { COLORS, SPACING, FONT_SIZE, RADIUS, SHADOW } from '../constants/theme';
 import { TYPE_EMOJIS } from '../constants/machineStore';
 import { machineAPI } from '../services/api';
 import PageHeader from '../components/PageHeader';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { requireAuth } from '../utils/authGuard';
+import { toastService } from '../services/toastService';
 
 export interface Machine {
   id: string; name: string; type: string; emoji: string; entries: any[];
@@ -119,6 +121,7 @@ export default function MachinesScreen() {
   const [confirmId,   setConfirmId]   = useState<string | null>(null);
   const [confirmName, setConfirmName] = useState('');
   const { theme, isDark } = useTheme();
+  const { isLoggedIn } = useAuth();
 
   const totalEarnings = (m: Machine) =>
     m.entries.reduce((s: number, e: any) => s + (e.totalAmount || 0), 0);
@@ -149,9 +152,9 @@ export default function MachinesScreen() {
     try {
       await machineAPI.delete(confirmId);
       setMachinesState(prev => prev.filter(m => m.id !== confirmId));
-      Toast.show({ type: 'success', text1: t('machine.deleteSuccess', { name }), visibilityTime: 2000 });
+      toastService.machineDeleted(name);
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: t('machine.deleteFailed'), text2: err.message });
+      toastService.error(t('machine.deleteFailed'), err.message);
     }
   };
 
@@ -203,7 +206,10 @@ export default function MachinesScreen() {
 
       {/* FAB */}
       <TouchableOpacity style={s.fab} activeOpacity={0.85}
-        onPress={() => router.push('/add-machine' as any)}>
+        onPress={() => {
+          if (!requireAuth(isLoggedIn, 'Machine Tracker')) return;
+          router.push('/add-machine' as any);
+        }}>
         <LinearGradient colors={['#1B5E20', '#43A047']} style={s.fabGrad}>
           <Ionicons name="add" size={22} color="#FFF" />
           <Text style={s.fabTxt}>{t('machine.addMachine')}</Text>

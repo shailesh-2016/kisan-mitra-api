@@ -11,8 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { COLORS } from '../constants/theme';
 import { MACHINE_TYPES, TYPE_EMOJIS } from '../constants/machineStore';
 import { machineAPI, getToken } from '../services/api';
-import { Toast } from '../components/Toast';
 import PageHeader from '../components/PageHeader';
+import { toastService } from '../services/toastService';
 
 const TYPE_COLORS: Record<string, string> = {
   tractor: '#1B5E20', rotavator: '#1565C0', harvester: '#E65100',
@@ -55,16 +55,16 @@ export default function AddMachineScreen() {
   const accent = TYPE_COLORS[type] || '#1B5E20';
 
   const save = async () => {
-    if (!name.trim()) { Toast.show({ type: 'error', text1: 'Enter machine name' }); return; }
+    if (!name.trim()) { toastService.error('Enter machine name'); return; }
     const token = await getToken();
-    if (!token) { Toast.show({ type: 'error', text1: 'Not logged in', text2: 'Please login first' }); return; }
+    if (!token) { toastService.loginRequired('Machine Tracker'); return; }
     setSaving(true);
     try {
       await machineAPI.add(name.trim(), type, TYPE_EMOJIS[type] ?? '🛠️');
-      Toast.show({ type: 'success', text1: `${name} added`, text2: t(`machine.types.${type}`), visibilityTime: 2000 });
+      toastService.machineAdded(name.trim());
       router.back();
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: t('machine.deleteFailed'), text2: err?.message || 'Unknown error' });
+      toastService.error(t('machine.deleteFailed'), err?.message || 'Unknown error');
     } finally { setSaving(false); }
   };
 

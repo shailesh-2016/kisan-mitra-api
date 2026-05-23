@@ -14,6 +14,7 @@ import { addTask, ReminderTask } from '../services/reminderStorage';
 import { scheduleTaskNotif, requestNotifPermission } from '../services/reminderNotif';
 import PageHeader from '../components/PageHeader';
 import { useTheme } from '../context/ThemeContext';
+import { toastService } from '../services/toastService';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const QUICK_TASKS = [
@@ -184,6 +185,7 @@ export default function AddReminderScreen() {
       );
       if (notifId) task.notifId = notifId;
       await addTask(task);
+      toastService.reminderAdded(task.name);
       router.back();
     } catch (e) {
       Alert.alert('Error', String(e));
