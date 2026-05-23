@@ -5,7 +5,7 @@
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "KisanPlus",
+    "scheme": "kisanplus",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "description": "Kisan Plus — Smart Farming App for Indian farmers. Get real-time mandi prices, weather alerts, government schemes, profit calculator, and AI crop doctor.",
@@ -67,7 +67,8 @@
           "color": "#2E7D32",
           "sounds": []
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
