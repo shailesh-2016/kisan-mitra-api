@@ -122,8 +122,10 @@ function TaskCard({
   const { t } = useTranslation();
   const { theme } = useTheme();
   const done = task.status === 'completed';
-  const mins = done ? 999 : getMinutesUntil(task.time);
-  const priority = done ? 'low' : getPriority(mins);
+  const missed = task.status === 'missed';
+  const isPast = done || missed;
+  const mins = isPast ? 999 : getMinutesUntil(task.time);
+  const priority = isPast ? 'low' : getPriority(mins);
   const pc = PRIORITY_COLORS[priority];
   const emoji = getTaskEmoji(task.name);
 
@@ -176,7 +178,7 @@ function TaskCard({
 
           {/* Info */}
           <View style={tc.info}>
-            <Text style={[tc.name, { color: theme.text }, done && tc.nameDone]} numberOfLines={2}>
+            <Text style={[tc.name, { color: theme.text }, done && tc.nameDone, missed && tc.nameMissed]} numberOfLines={2}>
               {task.name}
             </Text>
 
@@ -195,18 +197,25 @@ function TaskCard({
             </View>
 
             {/* Countdown / status pill */}
-            {!done ? (
+            {!isPast ? (
               <View style={[tc.countdownPill, { backgroundColor: pc.bg }]}>
                 <PulseDot color={pc.dot} />
                 <Text style={[tc.countdownTxt, { color: pc.text }]}>
                   {formatCountdown(mins)}
                 </Text>
               </View>
-            ) : (
+            ) : done ? (
               <View style={[tc.statusPill, { backgroundColor: theme.primaryBg }]}>
                 <Ionicons name="checkmark-circle" size={11} color={theme.primary} />
                 <Text style={[tc.statusTxt, { color: theme.primary }]}>
-                  {t('reminder.completed')}
+                  {t('reminder.completed', 'Completed')}
+                </Text>
+              </View>
+            ) : (
+              <View style={[tc.statusPill, { backgroundColor: theme.redBg }]}>
+                <Ionicons name="close-circle" size={11} color={theme.red} />
+                <Text style={[tc.statusTxt, { color: theme.red }]}>
+                  {t('reminder.missed', 'Missed')}
                 </Text>
               </View>
             )}
@@ -214,7 +223,7 @@ function TaskCard({
 
           {/* Actions */}
           <View style={tc.actions}>
-            {!done && (
+            {!isPast && (
               <Animated.View style={checkStyle}>
                 <TouchableOpacity
                   style={[tc.doneBtn, { backgroundColor: theme.primaryBg }]}
@@ -259,6 +268,7 @@ const tc = StyleSheet.create({
   info: { flex: 1, gap: 5 },
   name: { fontSize: 15, fontWeight: '700', lineHeight: 20 },
   nameDone: { textDecorationLine: 'line-through' },
+  nameMissed: { color: '#D32F2F' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
   time: { fontSize: 13, fontWeight: '700' },
   dot: { fontSize: 12 },
@@ -287,16 +297,16 @@ const tc = StyleSheet.create({
 });
 
 // ── Animated Stats Card ───────────────────────────────────────────────────────
-function StatsRow({ total, pending, completed }: {
-  total: number; pending: number; completed: number;
+function StatsRow({ total, pending, completed, missed }: {
+  total: number; pending: number; completed: number; missed: number;
 }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
 
   const stats = [
-    { label: t('reminder.total'),     value: total,     color: theme.text,    bg: theme.inputBg,   icon: 'list-outline'          },
-    { label: t('reminder.pending'),   value: pending,   color: '#C2410C',     bg: '#FFF7ED',       icon: 'time-outline'          },
-    { label: t('reminder.completed'), value: completed, color: theme.primary, bg: theme.primaryBg, icon: 'checkmark-circle-outline' },
+    { label: t('reminder.pending', 'Pending'),   value: pending,   color: '#C2410C',     bg: '#FFF7ED',       icon: 'time-outline'          },
+    { label: t('reminder.completed', 'Completed'), value: completed, color: theme.primary, bg: theme.primaryBg, icon: 'checkmark-circle-outline' },
+    { label: t('reminder.missed', 'Missed'), value: missed, color: '#D32F2F', bg: '#FFEBEE', icon: 'close-circle-outline' },
   ];
 
   return (
@@ -413,7 +423,7 @@ export default function RemindersScreen() {
       const now = new Date();
       const nowMins = now.getHours() * 60 + now.getMinutes();
       const due = tasks.find(task => {
-        if (task.status === 'completed') return false;
+        if (task.status !== 'pending') return false;
         const [h, m] = task.time.split(':').map(Number);
         const taskMins = h * 60 + m;
         return taskMins === nowMins;
@@ -422,6 +432,20 @@ export default function RemindersScreen() {
         setAlertTask(due);
         setAlertVisible(true);
       }
+
+      // Check for missed tasks (e.g., passed more than 15 minutes ago)
+      tasks.forEach(async (task) => {
+         if (task.status === 'pending') {
+            const [h, m] = task.time.split(':').map(Number);
+            const taskMins = h * 60 + m;
+            let diff = taskMins - nowMins;
+            // If diff is between -15 and -1440 (yesterday), we consider it missed if it was scheduled for today
+            if (diff < -15 && diff > -1440) {
+               await updateTask(task.id, { status: 'missed' });
+               setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'missed' } : t));
+            }
+         }
+      });
     }
   }, [tick, tasks]);
 
@@ -487,6 +511,7 @@ export default function RemindersScreen() {
 
   const pending   = tasks.filter(t => t.status === 'pending');
   const completed = tasks.filter(t => t.status === 'completed');
+  const missed    = tasks.filter(t => t.status === 'missed');
 
   // Sort pending by time remaining
   const sortedPending = [...pending].sort((a, b) => getMinutesUntil(a.time) - getMinutesUntil(b.time));
@@ -496,8 +521,8 @@ export default function RemindersScreen() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.headerBg} />
 
       <PageHeader
-        title={t('reminder.title')}
-        subtitle={t('reminder.subtitle')}
+        title={t('reminder.title', 'Smart Reminders')}
+        subtitle={t('reminder.subtitle', 'Manage farming tasks & alarms')}
         onBack={() => router.back()}
         iconName="alarm"
         iconColor="#C2410C"
@@ -518,7 +543,7 @@ export default function RemindersScreen() {
       >
         {/* Stats */}
         {tasks.length > 0 && (
-          <StatsRow total={tasks.length} pending={pending.length} completed={completed.length} />
+          <StatsRow total={tasks.length} pending={pending.length} completed={completed.length} missed={missed.length} />
         )}
 
         {/* Empty state */}
@@ -552,9 +577,30 @@ export default function RemindersScreen() {
               entering={FadeInDown.delay(120)}
               style={[s.sectionLabel, { color: theme.textSecondary }]}
             >
-              {t('reminder.completedTasks')}
+              {t('reminder.completedTasks', 'Completed')}
             </Animated.Text>
             {completed.map((task, i) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                index={i}
+                onComplete={() => handleComplete(task.id)}
+                onDelete={() => handleDelete(task)}
+              />
+            ))}
+          </>
+        )}
+
+        {/* Missed tasks */}
+        {missed.length > 0 && (
+          <>
+            <Animated.Text
+              entering={FadeInDown.delay(140)}
+              style={[s.sectionLabel, { color: theme.textSecondary }]}
+            >
+              {t('reminder.missedTasks', 'Missed')}
+            </Animated.Text>
+            {missed.map((task, i) => (
               <TaskCard
                 key={task.id}
                 task={task}

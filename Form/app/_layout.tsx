@@ -10,6 +10,10 @@ import { ToastProvider } from '../components/Toast';
 import { AuthProvider } from '../context/AuthContext';
 import { SettingsProvider } from '../context/SettingsContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { registerNotificationHandlers } from '../services/notificationHandler';
+
+// Register background notification action handlers early
+registerNotificationHandlers();
 
 export const unstable_settings = {
   anchor: '(tabs)',

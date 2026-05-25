@@ -6,7 +6,7 @@ export interface ReminderTask {
   time: string;       // "HH:MM" 24h format
   date?: string;      // "YYYY-MM-DD" optional
   repeat: boolean;    // daily repeat
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'missed';
   notifId?: string;   // expo notification id
   createdAt: number;
 }
@@ -34,6 +34,21 @@ export async function addTask(task: ReminderTask): Promise<void> {
 export async function updateTask(id: string, patch: Partial<ReminderTask>): Promise<void> {
   const tasks = await loadTasks();
   await saveTasks(tasks.map(t => (t.id === id ? { ...t, ...patch } : t)));
+}
+
+export async function updateTaskByNotifId(notifId: string, patch: Partial<ReminderTask>): Promise<void> {
+  const tasks = await loadTasks();
+  await saveTasks(tasks.map(t => (t.notifId === notifId ? { ...t, ...patch } : t)));
+}
+
+export async function getTaskByNotifId(notifId: string): Promise<ReminderTask | undefined> {
+  const tasks = await loadTasks();
+  return tasks.find(t => t.notifId === notifId);
+}
+
+export async function getTaskById(id: string): Promise<ReminderTask | undefined> {
+  const tasks = await loadTasks();
+  return tasks.find(t => t.id === id);
 }
 
 export async function deleteTask(id: string): Promise<void> {

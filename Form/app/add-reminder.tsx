@@ -48,12 +48,12 @@ interface DrumProps {
 
 function DrumPicker({ data, selected, onSelect, format, width = 72 }: DrumProps) {
   const { theme } = useTheme();
-  const ref = useRef<FlatList>(null);
+  const ref = useRef<ScrollView>(null);
   const scrolling = useRef(false);
 
   useEffect(() => {
     if (!scrolling.current) {
-      ref.current?.scrollToOffset({ offset: selected * ITEM_H, animated: false });
+      ref.current?.scrollTo({ y: selected * ITEM_H, animated: false });
     }
   }, [selected]);
 
@@ -74,10 +74,11 @@ function DrumPicker({ data, selected, onSelect, format, width = 72 }: DrumProps)
       const isActive = index === selected;
       return (
         <TouchableOpacity
+          key={index}
           style={[dp.item, { height: ITEM_H }]}
           onPress={() => {
             onSelect(index);
-            ref.current?.scrollToOffset({ offset: index * ITEM_H, animated: true });
+            ref.current?.scrollTo({ y: index * ITEM_H, animated: true });
           }}
           activeOpacity={0.7}
         >
@@ -101,22 +102,20 @@ function DrumPicker({ data, selected, onSelect, format, width = 72 }: DrumProps)
         dp.highlight,
         { backgroundColor: theme.primaryBg, borderColor: theme.primary + '40' },
       ]} pointerEvents="none" />
-      <FlatList
+      <ScrollView
         ref={ref}
-        data={data}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_H}
         decelerationRate="fast"
         contentContainerStyle={{ paddingVertical: PAD }}
         onScrollBeginDrag={onScrollBegin}
         onMomentumScrollEnd={onMomentumEnd}
-        getItemLayout={(_, index) => ({ length: ITEM_H, offset: ITEM_H * index, index })}
         style={{ height: DRUM_H }}
         bounces={false}
         nestedScrollEnabled={true}
-      />
+      >
+        {data.map((item, index) => renderItem({ item, index }))}
+      </ScrollView>
     </View>
   );
 }

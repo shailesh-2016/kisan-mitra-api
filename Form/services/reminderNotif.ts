@@ -48,14 +48,35 @@ export async function requestNotifPermission(): Promise<boolean> {
   if (!Notif) return false; // Expo Go — silently skip
 
   if (Platform.OS === 'android') {
-    await Notif.setNotificationChannelAsync('reminders', {
-      name: 'Kisan Reminders',
-      importance: Notif.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
+    await Notif.setNotificationChannelAsync('farming-alarms', {
+      name: 'Farming Alarms',
+      importance: Notif.AndroidImportance.MAX,
+      vibrationPattern: [0, 500, 200, 500],
       lightColor: '#2E7D32',
-      sound: 'default',
+      sound: 'farming_alarm.mp3',
+      lockscreenVisibility: Notif.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
     });
   }
+
+  // Register categories for action buttons
+  await Notif.setNotificationCategoryAsync('FARMING_REMINDER', [
+    {
+      identifier: 'COMPLETE',
+      buttonTitle: 'Complete',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: 'SNOOZE',
+      buttonTitle: 'Snooze (10m)',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: 'DISMISS',
+      buttonTitle: 'Dismiss',
+      options: { isDestructive: true, opensAppToForeground: false },
+    },
+  ]);
 
   const { status: existing } = await Notif.getPermissionsAsync();
   if (existing === 'granted') return true;
@@ -114,7 +135,8 @@ export async function scheduleTaskNotif(
       content: {
         title,
         body,
-        sound: 'default',
+        sound: 'farming_alarm.mp3', // Match the channel sound
+        categoryIdentifier: 'FARMING_REMINDER', // Enables action buttons
         data: { taskId: task.id },
       },
       trigger,

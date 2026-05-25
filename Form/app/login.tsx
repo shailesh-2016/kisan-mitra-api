@@ -18,23 +18,11 @@ import { useAuth } from '../context/AuthContext';
 import KisanLogo from '../components/KisanLogo';
 import { authAPI } from '../services/api';
 import { toastService } from '../services/toastService';
+import { useGoogleLogin } from '../services/googleAuth';
 
 WebBrowser.maybeCompleteAuthSession();
 
-// Safe dynamic getter for native Google Sign-in to prevent evaluation crashes in Expo Go
-const getGoogleSignin = () => {
-  try {
-    const { TurboModuleRegistry } = require('react-native');
-    const nativeModule = TurboModuleRegistry.getEnforcing('RNGoogleSignin');
-    if (nativeModule && nativeModule.isMock) {
-      return null;
-    }
-    return require('@react-native-google-signin/google-signin').GoogleSignin;
-  } catch (e: any) {
-    console.warn('[Google SDK] Native GoogleSignin module not available in this binary:', e.message);
-    return null;
-  }
-};
+// Removed native GoogleSignin getter to strictly use Firebase Auth + Expo Auth Session
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -47,77 +35,37 @@ export default function LoginScreen() {
   const { theme, isDark } = useTheme();
   const { setUser } = useAuth();
 
-  // Configure Native Google Sign-In if available
-  useEffect(() => {
-    try {
-      const GoogleSignin = getGoogleSignin();
-      if (GoogleSignin) {
-        GoogleSignin.configure({
-          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '817116410879-7rfit9e02c3nk97pk3gbud0t0bp4io4b.apps.googleusercontent.com',
-          offlineAccess: true,
-        });
-      }
-    } catch (e) {
-      console.warn('GoogleSignin config error:', e);
+  const { login: promptGoogleLogin, loading: googleLoading } = useGoogleLogin(
+    (u) => {
+      setUser({
+        id:             u._id || u.id,
+        name:           u.name         || '',
+        email:          u.email        || '',
+        village:        u.village      || '',
+        district:       u.district     || '',
+        state:          u.state        || '',
+        bio:            u.bio          || '',
+        profileImage:   u.profileImage || '',
+        coverImage:     u.coverImage   || '',
+        language:       u.language     || 'gu',
+        farmSize:       u.farmSize     || '',
+        cropsGrown:     u.cropsGrown   || '',
+        experience:     u.experience   || '',
+        followersCount: Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0),
+        followingCount: Array.isArray(u.following) ? u.following.length : (u.followingCount || 0),
+      });
+      toastService.loginSuccess();
+      router.replace('/(tabs)' as any);
+    },
+    (err) => {
+      setErrorMsg(err.message || 'Google Login Failed');
+      toastService.error(err.message || 'Google Login Failed');
     }
-  }, []);
-
-  // Social Login Hooks (Replace client IDs with actual ones in production)
-  const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-  });
+  );
 
   const [fbRequest, fbResponse, fbPromptAsync] = Facebook.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID',
   });
-
-  // Handle Google Auth Response
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const { authentication } = googleResponse;
-      if (authentication?.accessToken) {
-         setLoading(true);
-         fetch('https://www.googleapis.com/userinfo/v2/me', {
-           headers: { Authorization: `Bearer ${authentication.accessToken}` }
-         })
-         .then(res => res.json())
-         .then(data => {
-           return authAPI.googleLogin(data.email, data.name, data.picture, data.id);
-         })
-         .then(res => { 
-           setLoading(false);
-           if (res.success && res.user) {
-             const u = res.user;
-             setUser({
-               id:             u._id || u.id,
-               name:           u.name         || '',
-               email:          u.email        || '',
-               village:        u.village      || '',
-               district:       u.district     || '',
-               state:          u.state        || '',
-               bio:            u.bio          || '',
-               profileImage:   u.profileImage || '',
-               coverImage:     u.coverImage   || '',
-               language:       u.language     || 'gu',
-               farmSize:       u.farmSize     || '',
-               cropsGrown:     u.cropsGrown   || '',
-               experience:     u.experience   || '',
-               followersCount: Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0),
-               followingCount: Array.isArray(u.following) ? u.following.length : (u.followingCount || 0),
-             });
-             router.replace('/(tabs)' as any); 
-           }
-         })
-         .catch(err => {
-           setLoading(false);
-           setErrorMsg(err.message || 'Google Login Failed');
-           toastService.error(err.message || 'Google Login Failed');
-         });
-      }
-    }
-  }, [googleResponse]);
 
   // Handle Facebook Auth Response
   useEffect(() => {
@@ -221,57 +169,7 @@ export default function LoginScreen() {
     try {
       setErrorMsg('');
       if (provider === 'google') {
-        setLoading(true);
-        try {
-          const GoogleSignin = getGoogleSignin();
-          if (!GoogleSignin) {
-            throw new Error('Google Sign-in native module not available');
-          }
-          await GoogleSignin.hasPlayServices();
-          const userInfo = (await GoogleSignin.signIn()) as any;
-          const userObj = userInfo.data || userInfo;
-          if (userObj && userObj.user) {
-            const { email, name, photo, id } = userObj.user;
-            const res = await authAPI.googleLogin(email, name, photo || '', id);
-            setLoading(false);
-            if (res.success && res.user) {
-              const u = res.user;
-              setUser({
-                id:             u._id || u.id,
-                name:           u.name         || '',
-                email:          u.email        || '',
-                village:        u.village      || '',
-                district:       u.district     || '',
-                state:          u.state        || '',
-                bio:            u.bio          || '',
-                profileImage:   u.profileImage || '',
-                coverImage:     u.coverImage   || '',
-                language:       u.language     || 'gu',
-                farmSize:       u.farmSize     || '',
-                cropsGrown:     u.cropsGrown   || '',
-                experience:     u.experience   || '',
-                followersCount: Array.isArray(u.followers) ? u.followers.length : (u.followersCount || 0),
-                followingCount: Array.isArray(u.following) ? u.following.length : (u.followingCount || 0),
-              });
-              toastService.loginSuccess();
-              router.replace('/(tabs)' as any);
-              return;
-            } else {
-              setErrorMsg(res.message || 'Google Login Failed');
-              toastService.error(res.message || 'Google Login Failed');
-              return;
-            }
-          } else {
-            throw new Error('Google Sign-in did not return user information');
-          }
-        } catch (nativeErr: any) {
-          console.log('[Google SDK] Native sign in failed/unavailable, falling back to AuthSession:', nativeErr?.message);
-          // Fallback to Expo Auth Session (WebBrowser)
-          const result = await googlePromptAsync();
-          if (result.type !== 'success') {
-            setLoading(false);
-          }
-        }
+        await promptGoogleLogin();
       } else {
         await fbPromptAsync();
       }
@@ -406,9 +304,9 @@ export default function LoginScreen() {
                <TouchableOpacity 
                   style={[s.socialBtnStack, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]} 
                   onPress={() => handleSocialLogin('google')}
-                  disabled={loading}
+                  disabled={loading || googleLoading}
                >
-                  <Ionicons name="logo-google" size={22} color="#DB4437" />
+                  {googleLoading ? <ActivityIndicator color={theme.text} /> : <Ionicons name="logo-google" size={22} color="#DB4437" />}
                   <Text style={[s.socialBtnTextStack, { color: theme.text }]}>{t('auth.google', 'Continue with Google')}</Text>
                </TouchableOpacity>
 
