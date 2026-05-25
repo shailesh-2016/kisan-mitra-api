@@ -21,7 +21,7 @@
     },
    "android": {
   "package": "com.kisanplus.app",
-  "googleServicesFile": "./android/app/google-services.json",
+  "googleServicesFile": "./google-services.json",
   "versionCode": 3,
   "permissions": [
     "ACCESS_FINE_LOCATION",
