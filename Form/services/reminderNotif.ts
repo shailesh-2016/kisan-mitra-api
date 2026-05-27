@@ -9,79 +9,11 @@
  * Local scheduled notifications still work perfectly in Expo Go.
  */
 
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
 import { ReminderTask } from './reminderStorage';
-
-// True when running inside the Expo Go client
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
-
-// Lazily resolved module — avoids the auto-registration side-effect in Expo Go
-let _Notif: typeof import('expo-notifications') | null = null;
-
-async function getNotif(): Promise<typeof import('expo-notifications') | null> {
-  if (IS_EXPO_GO) {
-    // Expo Go SDK 53: remote push removed; skip to avoid the console error.
-    // Local scheduled notifications are also unavailable in Expo Go on Android
-    // without a dev build, so we gracefully return null.
-    return null;
-  }
-  if (!_Notif) {
-    _Notif = await import('expo-notifications');
-
-    // Configure foreground behaviour once on first load
-    _Notif.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
-    });
-  }
-  return _Notif;
-}
+import * as NotificationHelper from './NotificationHelper';
 
 export async function requestNotifPermission(): Promise<boolean> {
-  const Notif = await getNotif();
-  if (!Notif) return false; // Expo Go — silently skip
-
-  if (Platform.OS === 'android') {
-    await Notif.setNotificationChannelAsync('farming-alarms', {
-      name: 'Farming Alarms',
-      importance: Notif.AndroidImportance.MAX,
-      vibrationPattern: [0, 500, 200, 500],
-      lightColor: '#2E7D32',
-      sound: 'farming_alarm.mp3',
-      lockscreenVisibility: Notif.AndroidNotificationVisibility.PUBLIC,
-      bypassDnd: true,
-    });
-  }
-
-  // Register categories for action buttons
-  await Notif.setNotificationCategoryAsync('FARMING_REMINDER', [
-    {
-      identifier: 'COMPLETE',
-      buttonTitle: 'Complete',
-      options: { opensAppToForeground: false },
-    },
-    {
-      identifier: 'SNOOZE',
-      buttonTitle: 'Snooze (10m)',
-      options: { opensAppToForeground: false },
-    },
-    {
-      identifier: 'DISMISS',
-      buttonTitle: 'Dismiss',
-      options: { isDestructive: true, opensAppToForeground: false },
-    },
-  ]);
-
-  const { status: existing } = await Notif.getPermissionsAsync();
-  if (existing === 'granted') return true;
-  const { status } = await Notif.requestPermissionsAsync();
-  return status === 'granted';
+  return await NotificationHelper.requestNotifPermission();
 }
 
 export async function scheduleTaskNotif(
@@ -89,69 +21,9 @@ export async function scheduleTaskNotif(
   title: string,
   body: string,
 ): Promise<string | null> {
-  const Notif = await getNotif();
-  if (!Notif) return null; // Expo Go — silently skip
-
-  try {
-    const granted = await requestNotifPermission();
-    if (!granted) return null;
-
-    // Cancel previous notification if one exists
-    if (task.notifId) {
-      await Notif.cancelScheduledNotificationAsync(task.notifId).catch(() => {});
-    }
-
-    const [hStr, mStr] = task.time.split(':');
-    const hour   = parseInt(hStr, 10);
-    const minute = parseInt(mStr, 10);
-
-    let trigger: import('expo-notifications').NotificationTriggerInput;
-
-    if (task.repeat) {
-      trigger = {
-        type: Notif.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-      };
-    } else if (task.date) {
-      const [y, mo, d] = task.date.split('-').map(Number);
-      const fireDate = new Date(y, mo - 1, d, hour, minute, 0);
-      if (fireDate <= new Date()) return null;
-      trigger = {
-        type: Notif.SchedulableTriggerInputTypes.DATE,
-        date: fireDate,
-      };
-    } else {
-      const now      = new Date();
-      const fireDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0);
-      if (fireDate <= now) fireDate.setDate(fireDate.getDate() + 1);
-      trigger = {
-        type: Notif.SchedulableTriggerInputTypes.DATE,
-        date: fireDate,
-      };
-    }
-
-    const id = await Notif.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        sound: 'farming_alarm.mp3', // Match the channel sound
-        categoryIdentifier: 'FARMING_REMINDER', // Enables action buttons
-        data: { taskId: task.id },
-      },
-      trigger,
-    });
-    return id;
-  } catch (e) {
-    console.warn('scheduleTaskNotif error', e);
-    return null;
-  }
+  return await NotificationHelper.scheduleAlarmNotification(task, title, body);
 }
 
 export async function cancelTaskNotif(notifId: string): Promise<void> {
-  const Notif = await getNotif();
-  if (!Notif) return;
-  try {
-    await Notif.cancelScheduledNotificationAsync(notifId);
-  } catch {}
+  await NotificationHelper.cancelAlarmNotification(notifId);
 }

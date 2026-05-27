@@ -429,8 +429,7 @@ export default function RemindersScreen() {
         return taskMins === nowMins;
       });
       if (due) {
-        setAlertTask(due);
-        setAlertVisible(true);
+        router.push({ pathname: '/alarm', params: { taskId: due.id } });
       }
 
       // Check for missed tasks (e.g., passed more than 15 minutes ago)

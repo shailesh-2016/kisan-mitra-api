@@ -10,10 +10,10 @@ import { ToastProvider } from '../components/Toast';
 import { AuthProvider } from '../context/AuthContext';
 import { SettingsProvider } from '../context/SettingsContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
-import { registerNotificationHandlers } from '../services/notificationHandler';
+import { initReminderService } from '../services/ReminderService';
 
 // Register background notification action handlers early
-registerNotificationHandlers();
+initReminderService();
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -46,6 +46,7 @@ function AppStack() {
         <Stack.Screen name="add-machine" />
         <Stack.Screen name="add-entry" />
         <Stack.Screen name="mandi/[id]" />
+        <Stack.Screen name="alarm" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <ToastProvider />
