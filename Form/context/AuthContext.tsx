@@ -2,7 +2,7 @@ import React, {
   createContext, useContext, useState,
   useEffect, useCallback, ReactNode,
 } from 'react';
-import { getToken, getUser, removeToken, removeUser, saveUser, userAPI } from '../services/api';
+import { getToken, getUser, removeToken, removeUser, saveUser, userAPI, onUnauthorized } from '../services/api';
 import { auth } from '../services/firebaseConfig';
 import { signOut } from 'firebase/auth';
 
@@ -73,7 +73,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = await getToken();
         if (!token) { setLoading(false); return; }
 
-        // Try to get fresh profile from server
+        // 1. Load cached user immediately for optimistic UI
+        const cached = await getUser();
+        if (cached) setUser(cached as UserProfile);
+
+        // 2. Stop blocking the UI immediately!
+        setLoading(false);
+
+        // 3. Try to get fresh profile from server in the background
         try {
           const data = await userAPI.getProfile();
           if (data?.user) {
@@ -99,11 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await saveUser(profile);
           }
         } catch {
-          // Server unreachable — fall back to cached user
-          const cached = await getUser();
-          if (cached) setUser(cached as UserProfile);
+          // Silent fail for background fetch, cached user is already loaded
         }
-      } finally {
+      } catch (err) {
         setLoading(false);
       }
     })();
@@ -159,6 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await removeUser();
     setUser(null);
   }, []);
+
+  // Handle automatic 401 logouts
+  useEffect(() => {
+    const unsubscribe = onUnauthorized(() => {
+      console.warn('[AuthContext] 401 Unauthorized detected. Auto-logging out...');
+      logout();
+    });
+    return unsubscribe;
+  }, [logout]);
 
   return (
     <AuthContext.Provider value={{

@@ -96,8 +96,8 @@ const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
-    if (user.provider !== 'local') {
-      return res.status(400).json({ success: false, message: `Please login using ${user.provider}` });
+    if (!user.password) {
+      return res.status(400).json({ success: false, message: 'Password not set. Please use "Forgot Password" or login with Google/Facebook.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -287,9 +287,17 @@ const googleLogin = async (req, res) => {
     let user = await User.findOne({ email: email.toLowerCase() });
 
     if (user) {
-      if (user.provider === 'local') {
-          return res.status(400).json({ success: false, message: 'Email already registered with password. Please login normally.' });
+      // Merge accounts: update profile image if missing, mark verified
+      let updated = false;
+      if (!user.profileImage && profileImage) {
+        user.profileImage = profileImage;
+        updated = true;
       }
+      if (!user.isVerified) {
+        user.isVerified = true;
+        updated = true;
+      }
+      if (updated) await user.save();
     } else {
       user = await User.create({
         name: name || 'Google User',
@@ -333,9 +341,17 @@ const facebookLogin = async (req, res) => {
     let user = await User.findOne({ email: email.toLowerCase() });
 
     if (user) {
-      if (user.provider === 'local') {
-          return res.status(400).json({ success: false, message: 'Email already registered with password. Please login normally.' });
+      // Merge accounts: update profile image if missing, mark verified
+      let updated = false;
+      if (!user.profileImage && profileImage) {
+        user.profileImage = profileImage;
+        updated = true;
       }
+      if (!user.isVerified) {
+        user.isVerified = true;
+        updated = true;
+      }
+      if (updated) await user.save();
     } else {
       user = await User.create({
         name: name || 'Facebook User',

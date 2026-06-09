@@ -5,7 +5,7 @@ import { auth } from './firebase';
 import { authAPI } from './api';
 
 GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '817116410879-7rfit9e02c3nk97pk3gbud0t0bp4io4b.apps.googleusercontent.com',
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '1061684512561-nallhmtdd6k30695iv8k7qb1553cn83n.apps.googleusercontent.com',
   offlineAccess: false,
 });
 
@@ -33,8 +33,8 @@ export function useGoogleLogin(onSuccess: (user: any) => void, onError: (err: Er
 
         // 2. Send the Firebase User details to our backend to generate JWT
         const res = await authAPI.googleLogin(
-          fbUser.email,
-          fbUser.displayName,
+          fbUser.email || '',
+          fbUser.displayName || '',
           fbUser.photoURL || '',
           fbUser.uid
         );
