@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "558704259443",
-    "project_id": "kisan-15192",
-    "storage_bucket": "kisan-15192.firebasestorage.app"
+    "project_number": "1061684512561",
+    "project_id": "kisanplus-ee359",
+    "storage_bucket": "kisanplus-ee359.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:558704259443:android:2d8a365f0645bfcbef5506",
+        "mobilesdk_app_id": "1:1061684512561:android:a67b25daa9a9d84ccd1210",
         "android_client_info": {
           "package_name": "com.KisanPlus.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1061684512561-1qsj8t7rsnhfvdesfv8gi98slci2fpvu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.KisanPlus.app",
+            "certificate_hash": "d0a09a9fd2bd251e10e2c8bfec29630310075e2b"
+          }
+        },
+        {
+          "client_id": "1061684512561-nallhmtdd6k30695iv8k7qb1553cn83n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyC3yI3TkS4eyslbyBYbFR1w7k0VBn7lKAA"
+          "current_key": "AIzaSyAppUEqGIDNk-o0kJm7hFhMFO0cjWTddU4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1061684512561-nallhmtdd6k30695iv8k7qb1553cn83n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

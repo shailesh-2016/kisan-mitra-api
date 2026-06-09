@@ -457,7 +457,7 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
     console.log(`[Mandi] State "${state}" returned ${res.data?.length || 0} records`);
   }
 
-  if (!res.data || res.data.length === 0) return { groups: [], source: res.source };
+  if (!res.data || res.data.length === 0) return { groups: [], source: res.source, dateLabel: res.dateLabel };
 
   // Step 3: Remove duplicate records (same commodity + market)
   const seen = new Set();
@@ -515,7 +515,7 @@ export async function fetchNearbyWithDistance(userLat, userLng, state, district 
   });
 
   console.log(`[Mandi] Nearest mandi: ${groups[0]?.market} (${groups[0]?.distanceKm?.toFixed(1)} km)`);
-  return { groups, source: res.source };
+  return { groups, source: res.source, dateLabel: res.dateLabel };
 }
 
 /** Backward-compat alias */

@@ -17,7 +17,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firebase Auth dynamically based on platform
-let auth;
+let auth: any;
 if (Platform.OS === 'web') {
   auth = getAuth(app);
 } else {
