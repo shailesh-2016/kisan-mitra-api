@@ -161,7 +161,15 @@ const ms = StyleSheet.create({
 // ── Grid card config ──────────────────────────────────────────────────────────
 const GRID_CARDS = [
   {
-    id: '1', key: 'mandi', descKey: 'mandiDesc',
+    id: '1', key: 'machine', descKey: 'machineDesc',
+    icon: 'construct',
+    grad: ['#F5F3FF', '#EDE9FE'] as [string, string],
+    iconColor: '#5B21B6',
+    badge: '🚜',
+    badgeColor: '#5B21B6',
+  },
+  {
+    id: '2', key: 'mandi', descKey: 'mandiDesc',
     icon: 'trending-up',
     grad: ['#F0FBF1', '#DCF5E0'] as [string, string],
     iconColor: '#1E7D34',
@@ -169,23 +177,7 @@ const GRID_CARDS = [
     badgeColor: '#1E7D34',
   },
   {
-    id: '2', key: 'weather', descKey: 'weatherDescShort',
-    icon: 'partly-sunny',
-    grad: ['#EFF6FF', '#DBEAFE'] as [string, string],
-    iconColor: '#1D4ED8',
-    badge: '32°C',
-    badgeColor: '#1D4ED8',
-  },
-  {
-    id: '3', key: 'govt', descKey: 'govtDesc',
-    icon: 'shield-checkmark',
-    grad: ['#FFFBEB', '#FEF3C7'] as [string, string],
-    iconColor: '#D97706',
-    badge: 'New',
-    badgeColor: '#B45309',
-  },
-  {
-    id: '4', key: 'profit', descKey: 'profitDesc',
+    id: '3', key: 'profit', descKey: 'profitDesc',
     icon: 'calculator',
     grad: ['#FFF1F2', '#FFE4E6'] as [string, string],
     iconColor: '#BE123C',
@@ -193,12 +185,20 @@ const GRID_CARDS = [
     badgeColor: '#BE123C',
   },
   {
-    id: '5', key: 'machine', descKey: 'machineDesc',
-    icon: 'construct',
-    grad: ['#F5F3FF', '#EDE9FE'] as [string, string],
-    iconColor: '#5B21B6',
-    badge: '🚜',
-    badgeColor: '#5B21B6',
+    id: '4', key: 'weather', descKey: 'weatherDescShort',
+    icon: 'partly-sunny',
+    grad: ['#EFF6FF', '#DBEAFE'] as [string, string],
+    iconColor: '#1D4ED8',
+    badge: '32°C',
+    badgeColor: '#1D4ED8',
+  },
+  {
+    id: '5', key: 'govt', descKey: 'govtDesc',
+    icon: 'shield-checkmark',
+    grad: ['#FFFBEB', '#FEF3C7'] as [string, string],
+    iconColor: '#D97706',
+    badge: 'New',
+    badgeColor: '#B45309',
   },
   {
     id: '6', key: 'reminder', descKey: 'reminderDesc',
@@ -241,10 +241,19 @@ export default function HomeScreen() {
     reminder: '/reminders',
   };
 
-  const handleCardPress = (key: string) => {
+  const handleCardPress = async (key: string) => {
     const route = CARD_ROUTES[key];
     if (!route) return;
     if (PROTECTED_KEYS.has(key) && !requireAuth(isLoggedIn, FEATURE_NAMES[key] ?? key)) return;
+
+    if (key === 'reminder') {
+      const { checkReminderPermissions } = require('../../services/NotificationHelper');
+      await checkReminderPermissions(() => {
+        router.push(route as any);
+      });
+      return;
+    }
+
     router.push(route as any);
   };
 

@@ -1,12 +1,12 @@
 import { Audio } from 'expo-av';
-import * as Haptics from 'expo-haptics';
+import { Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import notifee, { EventType } from '@notifee/react-native';
 import { router } from 'expo-router';
 import { updateTask, getTaskById } from './reminderStorage';
 import { scheduleAlarmNotification, cancelAlarmNotification } from './NotificationHelper';
 
 let alarmSound: Audio.Sound | null = null;
-let vibrationInterval: any = null;
 let activeTaskId: string | null = null;
 
 // Starts the alarm sound and vibration loop (for foreground or active Alarm screen)
@@ -28,13 +28,11 @@ export async function startAlarmAudio(taskId: string): Promise<void> {
     await alarmSound.playAsync();
 
     // 2. Continuous heavy vibration loop
-    if (vibrationInterval) clearInterval(vibrationInterval);
-    vibrationInterval = setInterval(() => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-    }, 1500);
+    const PATTERN = [0, 1000, 1000]; // wait 0ms, vibrate 1s, wait 1s
+    Vibration.vibrate(PATTERN, true);
 
   } catch (error) {
-    console.error('Failed to start alarm audio/haptics:', error);
+    console.error('Failed to start alarm audio/vibration:', error);
   }
 }
 
@@ -48,10 +46,7 @@ export async function stopAlarmAudio(): Promise<void> {
     alarmSound = null;
   }
 
-  if (vibrationInterval) {
-    clearInterval(vibrationInterval);
-    vibrationInterval = null;
-  }
+  Vibration.cancel();
 }
 
 // Handles user action of Snoozing the alarm by 5 minutes
@@ -97,34 +92,52 @@ export async function dismissAlarm(taskId: string): Promise<void> {
   await stopAlarmAudio();
 }
 
-// Global initialization of the alarm listeners
 export function initReminderService() {
-  // 1. Listen for notifications arriving while app is in foreground
-  Notifications.addNotificationReceivedListener((notification) => {
-    const data = notification.request.content.data as any;
-    if (data && data.taskId) {
-      // Navigate to full-screen alarm immediately
-      router.push({ pathname: '/alarm', params: { taskId: String(data.taskId) } });
-    }
-  });
-
-  // 2. Listen for interactions when a user clicks a notification or notification actions
-  Notifications.addNotificationResponseReceivedListener(async (response) => {
-    const actionIdentifier = response.actionIdentifier;
-    const data = response.notification.request.content.data as any;
+  notifee.onForegroundEvent(async ({ type, detail }) => {
+    const data = detail.notification?.data as any;
     if (!data || !data.taskId) return;
-
+    
     const taskIdStr = String(data.taskId);
 
-    if (actionIdentifier === 'COMPLETE') {
-      await completeAlarm(taskIdStr);
-    } else if (actionIdentifier === 'SNOOZE') {
-      await snoozeAlarm(taskIdStr);
-    } else if (actionIdentifier === 'DISMISS') {
-      await dismissAlarm(taskIdStr);
-    } else {
-      // Default tap on the notification opens the full-screen alarm screen
-      router.push({ pathname: '/alarm', params: { taskId: taskIdStr } });
+    switch (type) {
+      case EventType.DELIVERED:
+        router.push({ pathname: '/alarm', params: { taskId: taskIdStr } });
+        break;
+      case EventType.ACTION_PRESS:
+        if (detail.pressAction?.id === 'COMPLETE') {
+          await completeAlarm(taskIdStr);
+        } else if (detail.pressAction?.id === 'SNOOZE') {
+          await snoozeAlarm(taskIdStr);
+        } else if (detail.pressAction?.id === 'DISMISS') {
+          await dismissAlarm(taskIdStr);
+        }
+        break;
+      case EventType.PRESS:
+        router.push({ pathname: '/alarm', params: { taskId: taskIdStr } });
+        break;
     }
   });
 }
+
+// Global Background Event Handler for Notifee
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  const data = detail.notification?.data as any;
+  if (!data || !data.taskId) return;
+
+  const taskIdStr = String(data.taskId);
+
+  switch (type) {
+    case EventType.DELIVERED:
+      // In Android, full-screen intent handles showing the app.
+      break;
+    case EventType.ACTION_PRESS:
+      if (detail.pressAction?.id === 'COMPLETE') {
+        await completeAlarm(taskIdStr);
+      } else if (detail.pressAction?.id === 'SNOOZE') {
+        await snoozeAlarm(taskIdStr);
+      } else if (detail.pressAction?.id === 'DISMISS') {
+        await dismissAlarm(taskIdStr);
+      }
+      break;
+  }
+});

@@ -11,6 +11,8 @@ import { AuthProvider } from '../context/AuthContext';
 import { SettingsProvider } from '../context/SettingsContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { initReminderService } from '../services/ReminderService';
+import notifee from '@notifee/react-native';
+import { useRouter } from 'expo-router';
 
 // Register background notification action handlers early
 initReminderService();
@@ -22,6 +24,19 @@ export const unstable_settings = {
 // ── Inner layout — reads ThemeContext after it's mounted ──────────────────────
 function AppStack() {
   const { isDark, theme } = useTheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if the app was launched from a notification (like fullScreenAction)
+    notifee.getInitialNotification().then(initialNotification => {
+      if (initialNotification) {
+        const taskId = initialNotification.notification.data?.taskId;
+        if (taskId) {
+          router.push({ pathname: '/alarm', params: { taskId: String(taskId) } });
+        }
+      }
+    });
+  }, []);
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>

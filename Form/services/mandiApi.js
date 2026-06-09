@@ -240,63 +240,42 @@ export async function fetchLatestAvailableMandiData({ state = '', district = '',
     }
   }
 
-  // Parse and sort unique arrival dates in target records
-  const dateMap = new Map(); // timestamp -> records
+  // Filter for last 7 days and keep latest price per commodity per market
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const bestRecordMap = new Map(); // key -> record
+  
   targetRecords.forEach(r => {
     const arrivalDateStr = r.arrival_date || r.Arrival_Date || '';
     if (!arrivalDateStr) return;
     const parsedDate = normalizeDate(arrivalDateStr);
-    const ts = parsedDate.getTime();
-    if (!dateMap.has(ts)) {
-      dateMap.set(ts, { dateStr: arrivalDateStr, records: [] });
+    
+    // Ignore data older than 7 days
+    if (parsedDate < sevenDaysAgo) return; 
+    
+    const key = `${normalizeText(r.market || r.Market)}|${normalizeText(r.commodity || r.Commodity)}`;
+    const existing = bestRecordMap.get(key);
+    
+    if (!existing) {
+      bestRecordMap.set(key, { record: r, date: parsedDate });
+    } else if (parsedDate > existing.date) {
+      bestRecordMap.set(key, { record: r, date: parsedDate });
     }
-    dateMap.get(ts).records.push(r);
   });
 
-  const uniqueTimestamps = [...dateMap.keys()].sort((a, b) => b - a);
-  console.log(`[Mandi Fetch] Unique dates found in target dataset:`, uniqueTimestamps.map(ts => dateMap.get(ts).dateStr));
+  const finalRecords = Array.from(bestRecordMap.values()).map(x => x.record);
 
-  if (uniqueTimestamps.length === 0) {
-    console.log(`[Mandi Fetch] No valid dates found in target dataset.`);
+  if (finalRecords.length === 0) {
+    console.log(`[Mandi Fetch] No valid dates found in target dataset within 7 days.`);
     return null;
   }
 
-  // Get the latest available timestamp and its records
-  const latestTs = uniqueTimestamps[0];
-  const latestData = dateMap.get(latestTs);
-  console.log(`[Mandi Fetch] Resolved latest available date: ${latestData.dateStr}`);
-
-  // Format arrival date string for label
-  const formattedLatestDate = latestData.dateStr;
-
-  // Friendly date label logic: Compare resolved date with today/yesterday
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-
-  const resolvedDateObj = new Date(latestTs);
-  let friendlyLabel = `Latest Available Data: ${formattedLatestDate}`;
-
-  // Simple day comparison
-  const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-
-  if (isSameDay(resolvedDateObj, today)) {
-    friendlyLabel = "Today's Data";
-  } else if (isSameDay(resolvedDateObj, yesterday)) {
-    friendlyLabel = "Yesterday's Data";
-  } else {
-    // Check if 2 or 3 days old
-    const diffTime = Math.abs(today.getTime() - resolvedDateObj.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays <= 3) {
-      friendlyLabel = `Data from ${diffDays} days ago`;
-    }
-  }
-
   return {
-    records: latestData.records,
-    dateLabel: friendlyLabel,
-    arrivalDate: formattedLatestDate
+    records: finalRecords,
+    dateLabel: "Recent Data (Last 7 Days)",
+    arrivalDate: "Last 7 Days"
   };
 }
 
@@ -443,19 +422,12 @@ export async function fetchByMarket(state, district, market) {
  * Sorts strictly by distance using Haversine formula.
  */
 export async function fetchNearbyWithDistance(userLat, userLng, state, district = '') {
-  // Step 1: Try user's district first — fastest and most relevant
+  // Always fetch full state to ensure we get ALL mandies nearby, not just the user's district.
+  // Because the user wants all mandies sorted by distance properly.
   let res = { data: [], source: 'empty' };
-  if (district) {
-    res = await fetchAllPages({ state, district });
-    console.log(`[Mandi] District "${district}" returned ${res.data?.length || 0} records`);
-  }
-
-  // Step 2: If district has < 5 records, fetch full state
-  if (!res.data || res.data.length < 5) {
-    console.log(`[Mandi] Expanding to full state: ${state}`);
-    res = await fetchAllPages({ state });
-    console.log(`[Mandi] State "${state}" returned ${res.data?.length || 0} records`);
-  }
+  console.log(`[Mandi] Fetching full state for nearby mandies: ${state}`);
+  res = await fetchAllPages({ state });
+  console.log(`[Mandi] State "${state}" returned ${res.data?.length || 0} records`);
 
   if (!res.data || res.data.length === 0) return { groups: [], source: res.source, dateLabel: res.dateLabel };
 
