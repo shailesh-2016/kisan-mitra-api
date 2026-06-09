@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kisan Plus",
     "slug": "kisan-mitra",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/logo/logo.png",
     "scheme": "kisanplus",
@@ -22,7 +22,7 @@
     "android": {
       "package": "com.KisanPlus.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
