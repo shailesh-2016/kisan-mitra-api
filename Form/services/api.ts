@@ -110,7 +110,7 @@ const request = async <T = any>(endpoint: string, options: RequestOptions = {}):
     response = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
-      timeoutMs: options.timeoutMs || (__DEV__ ? 8000 : 15000),
+      timeoutMs: options.timeoutMs || (__DEV__ ? 3500 : 15000),
     });
   } catch (err: any) {
     primaryError = err;
@@ -123,7 +123,7 @@ const request = async <T = any>(endpoint: string, options: RequestOptions = {}):
         response = await fetchWithTimeout(`${LIVE_API_URL}${endpoint}`, {
           ...options,
           headers,
-          timeoutMs: 20000,
+          timeoutMs: 12000,
         });
       } catch (fallbackErr: any) {
         console.error('[API] Fallback also failed:', fallbackErr?.message || fallbackErr);

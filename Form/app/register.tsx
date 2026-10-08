@@ -178,12 +178,17 @@ export default function RegisterScreen() {
     
     setLoading(true);
     setErrorMsg('');
+    const targetEmail = email.trim().toLowerCase();
     try {
-       const res = await authAPI.register(name, email, password, '');
+       const res = await authAPI.register(name.trim(), targetEmail, password, '');
        if (res.success) {
           router.push({ 
             pathname: '/otp', 
-            params: { email, mode: 'verify', devOtp: res.otp || '' } 
+            params: { 
+              email: res.email || targetEmail, 
+              mode: 'verify', 
+              devOtp: res.otp || '' 
+            } 
           } as any);
        }
     } catch (err: any) {

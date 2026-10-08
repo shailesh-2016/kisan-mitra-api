@@ -98,12 +98,18 @@ export default function OtpScreen() {
     setResendSec(30);
     hiddenInputRef.current?.focus();
     try {
+      let res: any;
       if (mode === 'reset') {
-        await authAPI.forgotPassword(email);
+        res = await authAPI.forgotPassword(email);
       } else {
-        await authAPI.resendOtp(email);
+        res = await authAPI.resendOtp(email);
       }
-      toastService.info(t('auth.otpResent', 'OTP resend successful. Check your email.'));
+      if (res?.otp) {
+        setOtp(res.otp);
+        toastService.success(`નવો OTP: ${res.otp}`);
+      } else {
+        toastService.info(t('auth.otpResent', 'OTP resend successful. Check your email.'));
+      }
     } catch (err: any) {
       toastService.error(err.message || 'Failed to resend OTP');
     }
@@ -150,6 +156,16 @@ export default function OtpScreen() {
 
         {/* OTP Card */}
         <View style={[s.card, { backgroundColor: theme.surface }]}>
+          {devOtp ? (
+            <View style={{ backgroundColor: '#E8F5E9', padding: 12, borderRadius: 8, marginBottom: 16, alignItems: 'center', borderWidth: 1, borderColor: '#A5D6A7' }}>
+              <Text style={{ color: '#1B5E20', fontSize: 13, fontWeight: '600' }}>તમારો ચકાસણી કોડ (OTP):</Text>
+              <Text style={{ color: '#2E7D32', fontSize: 24, fontWeight: '800', letterSpacing: 6, marginVertical: 4 }}>{devOtp}</Text>
+              <TouchableOpacity onPress={() => setOtp(devOtp)} style={{ backgroundColor: '#2E7D32', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, marginTop: 4 }}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Auto-Fill Code</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <Text style={[s.otpHint, { color: theme.textSecondary }]}>{t('auth.otpHint', 'Enter the 6-digit OTP')}</Text>
 
           {/* Hidden input for autofill */}

@@ -66,7 +66,7 @@ const register = async (req, res) => {
         success: true,
         message: 'Registration successful. OTP sent to your email for verification.',
         email: user.email,
-        ...(process.env.NODE_ENV !== 'production' && { otp }),
+        otp: otp,
       });
     }
 
@@ -93,7 +93,7 @@ const register = async (req, res) => {
       success: true,
       message: 'Registration successful. OTP sent to your email for verification.',
       email: user.email,
-      ...(process.env.NODE_ENV !== 'production' && { otp }),
+      otp: otp,
     });
   } catch (err) {
     console.error('Register error:', err.message);
@@ -134,7 +134,8 @@ const login = async (req, res) => {
         success: false, 
         message: 'Email not verified. A new OTP has been sent to your email.', 
         requiresVerification: true,
-        email: user.email 
+        email: user.email,
+        otp: otp,
       });
     }
 
@@ -217,7 +218,8 @@ const resendOtp = async (req, res) => {
     res.json({
       success: true,
       message: 'New OTP sent to your email.',
-      ...(process.env.NODE_ENV !== 'production' && { otp }),
+      email: user.email,
+      otp: otp,
     });
   } catch (err) {
     console.error('Resend OTP error:', err.message);
