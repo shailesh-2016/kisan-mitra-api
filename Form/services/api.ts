@@ -8,30 +8,24 @@ import Constants from 'expo-constants';
 export const LIVE_API_URL = process.env.EXPO_PUBLIC_PROD_API_URL || 'https://kisan-mitra-api-8ski.onrender.com';
 
 const getDevApiUrl = () => {
-  // 1. Explicit local dev URL from .env (e.g. http://10.236.128.246:5000)
-  if (process.env.EXPO_PUBLIC_DEV_API_URL) {
-    return process.env.EXPO_PUBLIC_DEV_API_URL;
+  // 1. Web browser always uses localhost:5001
+  if (Platform.OS === 'web') {
+    return 'http://localhost:5001';
   }
 
-  // 2. Legacy / generic override
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  // 3. Auto-detect host IP when testing on a physical phone via Expo Go on the same Wi-Fi
+  // 2. Android emulator uses 10.0.2.2:5001
+  // On physical Android device via Expo Go, auto-detect host PC IP
   const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoGo?.debuggerHost || (Constants as any).manifest?.debuggerHost;
   if (hostUri) {
     const ip = hostUri.split(':')[0];
-    if (ip) return `http://${ip}:5000`;
+    if (ip) return `http://${ip}:5001`;
   }
 
-  // 4. Android emulator loopback address
   if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:5000';
+    return 'http://10.0.2.2:5001';
   }
 
-  // 5. Web and iOS simulator
-  return 'http://localhost:5000';
+  return process.env.EXPO_PUBLIC_DEV_API_URL || 'http://localhost:5001';
 };
 
 // Automatic Mode Switch:
@@ -105,37 +99,23 @@ const request = async <T = any>(endpoint: string, options: RequestOptions = {}):
   let response: Response | null = null;
   let primaryError: any = null;
 
-  // 1. Try Primary BASE_URL (Local dev server when in development, or Live API when in production)
+  // 1. Send request to BASE_URL
   try {
     response = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
-      timeoutMs: options.timeoutMs || (__DEV__ ? 3500 : 15000),
+      timeoutMs: options.timeoutMs || (__DEV__ ? 5000 : 15000),
     });
   } catch (err: any) {
     primaryError = err;
     console.warn(`[API] Connection to ${BASE_URL}${endpoint} failed:`, err?.message || err);
-
-    // 2. In DEV mode: If local backend is down/unreachable, fallback automatically to Live API
-    if (__DEV__ && BASE_URL !== LIVE_API_URL) {
-      console.log(`[API] Retrying with Live Server fallback: ${LIVE_API_URL}${endpoint}`);
-      try {
-        response = await fetchWithTimeout(`${LIVE_API_URL}${endpoint}`, {
-          ...options,
-          headers,
-          timeoutMs: 12000,
-        });
-      } catch (fallbackErr: any) {
-        console.error('[API] Fallback also failed:', fallbackErr?.message || fallbackErr);
-      }
-    }
   }
 
   if (!response) {
     throw new Error(
       primaryError?.name === 'AbortError'
-        ? 'Request timed out. Please check your internet connection or server.'
-        : 'Network error - unable to reach server. Please check your internet or Wi-Fi connection.'
+        ? 'Request timed out. Please check your connection.'
+        : `Network error - unable to connect to ${BASE_URL}. Ensure backend is running.`
     );
   }
 
