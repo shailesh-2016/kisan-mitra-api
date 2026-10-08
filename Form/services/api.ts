@@ -13,19 +13,23 @@ const getDevApiUrl = () => {
     return 'http://localhost:5001';
   }
 
-  // 2. Android emulator uses 10.0.2.2:5001
-  // On physical Android device via Expo Go, auto-detect host PC IP
+  // 2. Explicit dev URL from .env if defined and NOT localhost on mobile
+  const envUrl = process.env.EXPO_PUBLIC_DEV_API_URL;
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl;
+  }
+
+  // 3. On physical Android device via Expo Go, auto-detect host PC IP
   const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoGo?.debuggerHost || (Constants as any).manifest?.debuggerHost;
   if (hostUri) {
     const ip = hostUri.split(':')[0];
-    if (ip) return `http://${ip}:5001`;
+    if (ip && /^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+      return `http://${ip}:5001`;
+    }
   }
 
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:5001';
-  }
-
-  return process.env.EXPO_PUBLIC_DEV_API_URL || 'http://localhost:5001';
+  // 4. Fallback to PC current Wi-Fi IP
+  return 'http://10.236.128.246:5001';
 };
 
 // Automatic Mode Switch:
