@@ -104,11 +104,12 @@ const request = async <T = any>(endpoint: string, options: RequestOptions = {}):
   let primaryError: any = null;
 
   // 1. Send request to BASE_URL
+  console.log(`[API Request] ${options.method || 'GET'} ${BASE_URL}${endpoint}`);
   try {
     response = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
-      timeoutMs: options.timeoutMs || (__DEV__ ? 5000 : 15000),
+      timeoutMs: options.timeoutMs || 8000,
     });
   } catch (err: any) {
     primaryError = err;
