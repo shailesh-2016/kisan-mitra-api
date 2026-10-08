@@ -1,18 +1,32 @@
 import { Platform, Alert, Linking } from 'react-native';
-import notifee, {
-  AndroidImportance,
-  AndroidCategory,
-  AndroidVisibility,
-  TriggerType,
-  TimestampTrigger,
-  RepeatFrequency,
-  AndroidNotificationSetting,
-} from '@notifee/react-native';
+let notifee: any = null;
+let AndroidImportance: any = { HIGH: 4, DEFAULT: 3 };
+let AndroidCategory: any = { ALARM: 'alarm' };
+let AndroidVisibility: any = { PUBLIC: 1 };
+let TriggerType: any = { TIMESTAMP: 0 };
+let TimestampTrigger: any = {};
+let RepeatFrequency: any = { DAILY: 0, WEEKLY: 1 };
+let AndroidNotificationSetting: any = { DISABLED: 0, ENABLED: 1 };
+
+try {
+  const mod = require('@notifee/react-native');
+  notifee = mod.default || mod;
+  if (mod.AndroidImportance) AndroidImportance = mod.AndroidImportance;
+  if (mod.AndroidCategory) AndroidCategory = mod.AndroidCategory;
+  if (mod.AndroidVisibility) AndroidVisibility = mod.AndroidVisibility;
+  if (mod.TriggerType) TriggerType = mod.TriggerType;
+  if (mod.RepeatFrequency) RepeatFrequency = mod.RepeatFrequency;
+  if (mod.AndroidNotificationSetting) AndroidNotificationSetting = mod.AndroidNotificationSetting;
+} catch (e) {
+  // Notifee native module not available in standard Expo Go
+}
+
 import { ReminderTask } from './reminderStorage';
 
 const CHANNEL_ID = 'farming-alarm-fullscreen';
 
 export async function requestNotifPermission(): Promise<boolean> {
+  if (!notifee?.requestPermission) return true;
   const settings = await notifee.requestPermission();
   if (settings.authorizationStatus === 0) return false;
 
@@ -57,20 +71,26 @@ export async function requestNotifPermission(): Promise<boolean> {
       ]
     );
 
-    await notifee.createChannel({
-      id: CHANNEL_ID,
-      name: 'Farming Alarms',
-      importance: AndroidImportance.HIGH,
-      vibration: true,
-      vibrationPattern: [300, 500, 300, 500],
-      bypassDnd: true,
-    });
+    if (notifee?.createChannel) {
+      await notifee.createChannel({
+        id: CHANNEL_ID,
+        name: 'Farming Alarms',
+        importance: AndroidImportance.HIGH,
+        vibration: true,
+        vibrationPattern: [300, 500, 300, 500],
+        bypassDnd: true,
+      });
+    }
   }
   return true;
 }
 
 // Dedicated helper to check permissions BEFORE entering the Reminders screen
 export async function checkReminderPermissions(onSuccess: () => void) {
+  if (!notifee?.requestPermission) {
+    onSuccess();
+    return;
+  }
   const settings = await notifee.requestPermission();
   if (settings.authorizationStatus === 0) {
     Alert.alert('Permission Denied', 'Notifications permission is required.');
@@ -128,7 +148,7 @@ export async function scheduleAlarmNotification(
     const granted = await requestNotifPermission();
     if (!granted) return null;
 
-    if (task.notifId) {
+    if (task.notifId && notifee?.cancelNotification) {
       await notifee.cancelNotification(task.notifId).catch(() => {});
     }
 
@@ -148,7 +168,7 @@ export async function scheduleAlarmNotification(
       if (fireDate <= now) fireDate.setDate(fireDate.getDate() + 1); // next day
     }
 
-    const trigger: TimestampTrigger = {
+    const trigger: any = {
       type: TriggerType.TIMESTAMP,
       timestamp: fireDate.getTime(),
       repeatFrequency: task.repeat ? RepeatFrequency.DAILY : undefined,
@@ -159,29 +179,31 @@ export async function scheduleAlarmNotification(
 
     const notifId = `task-${task.id}-${Date.now()}`;
 
-    await notifee.createTriggerNotification(
-      {
-        id: notifId,
-        title,
-        body,
-        data: { taskId: task.id },
-        android: {
-          channelId: CHANNEL_ID,
-          importance: AndroidImportance.HIGH,
-          visibility: AndroidVisibility.PUBLIC,
-          category: AndroidCategory.ALARM,
-          fullScreenAction: {
-            id: 'default', // Launches the main activity automatically
-            mainComponent: 'main',
+    if (notifee?.createTriggerNotification) {
+      await notifee.createTriggerNotification(
+        {
+          id: notifId,
+          title,
+          body,
+          data: { taskId: task.id },
+          android: {
+            channelId: CHANNEL_ID,
+            importance: AndroidImportance.HIGH,
+            visibility: AndroidVisibility.PUBLIC,
+            category: AndroidCategory.ALARM,
+            fullScreenAction: {
+              id: 'default', // Launches the main activity automatically
+              mainComponent: 'main',
+            },
+            actions: [
+              { title: 'Dismiss', pressAction: { id: 'DISMISS' } },
+              { title: 'Snooze', pressAction: { id: 'SNOOZE' } },
+            ],
           },
-          actions: [
-            { title: 'Dismiss', pressAction: { id: 'DISMISS' } },
-            { title: 'Snooze', pressAction: { id: 'SNOOZE' } },
-          ],
         },
-      },
-      trigger
-    );
+        trigger
+      );
+    }
 
     return notifId;
   } catch (e) {
@@ -192,6 +214,8 @@ export async function scheduleAlarmNotification(
 
 export async function cancelAlarmNotification(notifId: string): Promise<void> {
   try {
-    await notifee.cancelNotification(notifId);
+    if (notifee?.cancelNotification) {
+      await notifee.cancelNotification(notifId);
+    }
   } catch {}
 }

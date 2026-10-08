@@ -11,7 +11,12 @@ import { AuthProvider } from '../context/AuthContext';
 import { SettingsProvider } from '../context/SettingsContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { initReminderService } from '../services/ReminderService';
-import notifee from '@notifee/react-native';
+let notifee: any = null;
+try {
+  notifee = require('@notifee/react-native').default || require('@notifee/react-native');
+} catch (e) {
+  // Notifee native module not available in standard Expo Go
+}
 import { useRouter } from 'expo-router';
 
 // Register background notification action handlers early
@@ -28,14 +33,16 @@ function AppStack() {
 
   useEffect(() => {
     // Check if the app was launched from a notification (like fullScreenAction)
-    notifee.getInitialNotification().then(initialNotification => {
-      if (initialNotification) {
-        const taskId = initialNotification.notification.data?.taskId;
-        if (taskId) {
-          router.push({ pathname: '/alarm', params: { taskId: String(taskId) } });
+    if (notifee?.getInitialNotification) {
+      notifee.getInitialNotification().then((initialNotification: any) => {
+        if (initialNotification) {
+          const taskId = initialNotification.notification?.data?.taskId;
+          if (taskId) {
+            router.push({ pathname: '/alarm', params: { taskId: String(taskId) } });
+          }
         }
-      }
-    });
+      }).catch(() => {});
+    }
   }, []);
 
   return (

@@ -4,18 +4,16 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // ── Base URL ──────────────────────────────────────────────────────────────────
-// Production Live Server (used when app is built into APK / Production release)
-export const LIVE_API_URL = process.env.EXPO_PUBLIC_PROD_API_URL || 'https://kisan-mitra-api-8ski.onrender.com';
-
-const getDevApiUrl = () => {
+// Strictly use Local IP / Localhost backend on port 5001 (Render completely removed)
+export const getApiUrl = () => {
   // 1. Web browser always uses localhost:5001
   if (Platform.OS === 'web') {
     return 'http://localhost:5001';
   }
 
   // 2. Explicit dev URL from .env if defined and NOT localhost on mobile
-  const envUrl = process.env.EXPO_PUBLIC_DEV_API_URL;
-  if (envUrl && !envUrl.includes('localhost')) {
+  const envUrl = process.env.EXPO_PUBLIC_DEV_API_URL || process.env.EXPO_PUBLIC_PROD_API_URL;
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('render')) {
     return envUrl;
   }
 
@@ -32,12 +30,10 @@ const getDevApiUrl = () => {
   return 'http://10.236.128.246:5001';
 };
 
-// Automatic Mode Switch:
-// In local Expo testing (__DEV__ === true)  -> Uses Local Dev Backend
-// In Production APK Build (__DEV__ === false) -> Uses Live Render Production Server
-export const BASE_URL = __DEV__ ? getDevApiUrl() : LIVE_API_URL;
+export const BASE_URL = getApiUrl();
+export const LIVE_API_URL = BASE_URL;
 
-console.log(`[API Config] Mode: ${__DEV__ ? 'DEVELOPMENT (Local)' : 'PRODUCTION (Build)'} | Base URL: ${BASE_URL}`);
+console.log(`[API Config] Active Base URL: ${BASE_URL}`);
 
 const TOKEN_KEY = 'kisan_token';
 const USER_KEY  = 'kisan_user';

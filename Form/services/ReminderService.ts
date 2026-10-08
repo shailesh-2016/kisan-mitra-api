@@ -1,7 +1,15 @@
 import { Audio } from 'expo-av';
 import { Vibration } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import notifee, { EventType } from '@notifee/react-native';
+let notifee: any = null;
+let EventType: any = { DELIVERED: 0, PRESS: 1, DISMISSED: 2, ACTION_PRESS: 3 };
+try {
+  const mod = require('@notifee/react-native');
+  notifee = mod.default || mod;
+  if (mod.EventType) EventType = mod.EventType;
+} catch (e) {
+  // Notifee native module not available in standard Expo Go
+}
 import { router } from 'expo-router';
 import { updateTask, getTaskById } from './reminderStorage';
 import { scheduleAlarmNotification, cancelAlarmNotification } from './NotificationHelper';
@@ -93,7 +101,8 @@ export async function dismissAlarm(taskId: string): Promise<void> {
 }
 
 export function initReminderService() {
-  notifee.onForegroundEvent(async ({ type, detail }) => {
+  if (!notifee?.onForegroundEvent) return;
+  notifee.onForegroundEvent(async ({ type, detail }: any) => {
     const data = detail.notification?.data as any;
     if (!data || !data.taskId) return;
     
@@ -120,24 +129,26 @@ export function initReminderService() {
 }
 
 // Global Background Event Handler for Notifee
-notifee.onBackgroundEvent(async ({ type, detail }) => {
-  const data = detail.notification?.data as any;
-  if (!data || !data.taskId) return;
+if (notifee?.onBackgroundEvent) {
+  notifee.onBackgroundEvent(async ({ type, detail }: any) => {
+    const data = detail.notification?.data as any;
+    if (!data || !data.taskId) return;
 
-  const taskIdStr = String(data.taskId);
+    const taskIdStr = String(data.taskId);
 
-  switch (type) {
-    case EventType.DELIVERED:
-      // In Android, full-screen intent handles showing the app.
-      break;
-    case EventType.ACTION_PRESS:
-      if (detail.pressAction?.id === 'COMPLETE') {
-        await completeAlarm(taskIdStr);
-      } else if (detail.pressAction?.id === 'SNOOZE') {
-        await snoozeAlarm(taskIdStr);
-      } else if (detail.pressAction?.id === 'DISMISS') {
-        await dismissAlarm(taskIdStr);
-      }
-      break;
-  }
-});
+    switch (type) {
+      case EventType.DELIVERED:
+        // In Android, full-screen intent handles showing the app.
+        break;
+      case EventType.ACTION_PRESS:
+        if (detail.pressAction?.id === 'COMPLETE') {
+          await completeAlarm(taskIdStr);
+        } else if (detail.pressAction?.id === 'SNOOZE') {
+          await snoozeAlarm(taskIdStr);
+        } else if (detail.pressAction?.id === 'DISMISS') {
+          await dismissAlarm(taskIdStr);
+        }
+        break;
+    }
+  });
+}
