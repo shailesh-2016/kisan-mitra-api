@@ -181,7 +181,10 @@ export default function RegisterScreen() {
     try {
        const res = await authAPI.register(name, email, password, '');
        if (res.success) {
-          router.push({ pathname: '/otp', params: { email, mode: 'verify' } } as any);
+          router.push({ 
+            pathname: '/otp', 
+            params: { email, mode: 'verify', devOtp: res.otp || '' } 
+          } as any);
        }
     } catch (err: any) {
        setErrorMsg(err.message || 'Registration failed');

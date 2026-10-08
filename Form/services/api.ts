@@ -1,8 +1,45 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // ── Base URL ──────────────────────────────────────────────────────────────────
-const BASE_URL = 'https://kisan-mitra-api-8ski.onrender.com';
+// Production Live Server (used when app is built into APK / Production release)
+export const LIVE_API_URL = process.env.EXPO_PUBLIC_PROD_API_URL || 'https://kisan-mitra-api-8ski.onrender.com';
+
+const getDevApiUrl = () => {
+  // 1. Explicit local dev URL from .env (e.g. http://10.236.128.246:5000)
+  if (process.env.EXPO_PUBLIC_DEV_API_URL) {
+    return process.env.EXPO_PUBLIC_DEV_API_URL;
+  }
+
+  // 2. Legacy / generic override
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 3. Auto-detect host IP when testing on a physical phone via Expo Go on the same Wi-Fi
+  const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoGo?.debuggerHost || (Constants as any).manifest?.debuggerHost;
+  if (hostUri) {
+    const ip = hostUri.split(':')[0];
+    if (ip) return `http://${ip}:5000`;
+  }
+
+  // 4. Android emulator loopback address
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:5000';
+  }
+
+  // 5. Web and iOS simulator
+  return 'http://localhost:5000';
+};
+
+// Automatic Mode Switch:
+// In local Expo testing (__DEV__ === true)  -> Uses Local Dev Backend
+// In Production APK Build (__DEV__ === false) -> Uses Live Render Production Server
+export const BASE_URL = __DEV__ ? getDevApiUrl() : LIVE_API_URL;
+
+console.log(`[API Config] Mode: ${__DEV__ ? 'DEVELOPMENT (Local)' : 'PRODUCTION (Build)'} | Base URL: ${BASE_URL}`);
 
 const TOKEN_KEY = 'kisan_token';
 const USER_KEY  = 'kisan_user';
@@ -37,7 +74,24 @@ const triggerUnauthorized = () => {
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 interface RequestOptions extends RequestInit {
   headers?: Record<string, string>;
+  timeoutMs?: number;
 }
+
+const fetchWithTimeout = async (url: string, options: RequestOptions = {}): Promise<Response> => {
+  const { timeoutMs = 8000, ...rest } = options;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...rest,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 const request = async <T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> => {
   const token = await getToken();
@@ -48,15 +102,41 @@ const request = async <T = any>(endpoint: string, options: RequestOptions = {}):
     ...options.headers,
   };
 
-  let response: Response;
+  let response: Response | null = null;
+  let primaryError: any = null;
+
+  // 1. Try Primary BASE_URL (Local dev server when in development, or Live API when in production)
   try {
-    response = await fetch(`${BASE_URL}${endpoint}`, {
+    response = await fetchWithTimeout(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
+      timeoutMs: options.timeoutMs || (__DEV__ ? 8000 : 15000),
     });
-  } catch (networkErr: any) {
-    console.error('[API] Network error:', networkErr?.message);
-    throw new Error('Network error - check your connection or server IP');
+  } catch (err: any) {
+    primaryError = err;
+    console.warn(`[API] Connection to ${BASE_URL}${endpoint} failed:`, err?.message || err);
+
+    // 2. In DEV mode: If local backend is down/unreachable, fallback automatically to Live API
+    if (__DEV__ && BASE_URL !== LIVE_API_URL) {
+      console.log(`[API] Retrying with Live Server fallback: ${LIVE_API_URL}${endpoint}`);
+      try {
+        response = await fetchWithTimeout(`${LIVE_API_URL}${endpoint}`, {
+          ...options,
+          headers,
+          timeoutMs: 20000,
+        });
+      } catch (fallbackErr: any) {
+        console.error('[API] Fallback also failed:', fallbackErr?.message || fallbackErr);
+      }
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      primaryError?.name === 'AbortError'
+        ? 'Request timed out. Please check your internet connection or server.'
+        : 'Network error - unable to reach server. Please check your internet or Wi-Fi connection.'
+    );
   }
 
   // Handle 401 Unauthorized globally
@@ -105,6 +185,12 @@ export const authAPI = {
     }
     return data;
   },
+
+  resendOtp: (email: string) =>
+    request('/api/auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
 
   forgotPassword: (email: string) =>
     request('/api/auth/forgot-password', {

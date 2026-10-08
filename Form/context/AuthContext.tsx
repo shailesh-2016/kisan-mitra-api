@@ -10,13 +10,12 @@ import { signOut } from 'firebase/auth';
 const getGoogleSignin = () => {
   try {
     const { TurboModuleRegistry } = require('react-native');
-    const nativeModule = TurboModuleRegistry.getEnforcing('RNGoogleSignin');
-    if (nativeModule && nativeModule.isMock) {
+    const nativeModule = TurboModuleRegistry?.get ? TurboModuleRegistry.get('RNGoogleSignin') : null;
+    if (!nativeModule || nativeModule.isMock) {
       return null;
     }
     return require('@react-native-google-signin/google-signin').GoogleSignin;
   } catch (e: any) {
-    console.warn('[Google SDK] Native GoogleSignin module not available in this binary:', e.message);
     return null;
   }
 };

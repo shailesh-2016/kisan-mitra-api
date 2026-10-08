@@ -20,7 +20,7 @@ const OTP_LENGTH = 6;
 export default function OtpScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { email, mode } = useLocalSearchParams<{ email: string; mode?: string }>();
+  const { email, mode, devOtp } = useLocalSearchParams<{ email: string; mode?: string; devOtp?: string }>();
   const { setUser } = useAuth();
 
   const [otp, setOtp] = useState('');
@@ -29,10 +29,14 @@ export default function OtpScreen() {
   const hiddenInputRef = useRef<TextInput>(null);
   const { theme, isDark } = useTheme();
 
-  // Focus input on mount
+  // Focus input on mount & auto-fill dev OTP if available
   useEffect(() => {
-    setTimeout(() => hiddenInputRef.current?.focus(), 500);
-  }, []);
+    if (devOtp && typeof devOtp === 'string' && devOtp.length === OTP_LENGTH) {
+      setOtp(devOtp);
+    } else {
+      setTimeout(() => hiddenInputRef.current?.focus(), 500);
+    }
+  }, [devOtp]);
 
   // Countdown timer
   useEffect(() => {
@@ -95,14 +99,13 @@ export default function OtpScreen() {
     hiddenInputRef.current?.focus();
     try {
       if (mode === 'reset') {
-         await authAPI.forgotPassword(email);
+        await authAPI.forgotPassword(email);
       } else {
-         // for verify mode, maybe resend otp logic or recall login
-         await authAPI.login(email, 'some_fake_so_it_fails_and_resends_otp'); 
-         // Note: Better to have a dedicated /api/auth/resend-otp for email, but for now we rely on login logic or just re-request
+        await authAPI.resendOtp(email);
       }
+      toastService.info(t('auth.otpResent', 'OTP resend successful. Check your email.'));
     } catch (err: any) {
-      // Ignored since we know login will fail but trigger otp resend if not verified
+      toastService.error(err.message || 'Failed to resend OTP');
     }
   };
 

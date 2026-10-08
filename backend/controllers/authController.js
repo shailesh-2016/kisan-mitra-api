@@ -10,6 +10,25 @@ const generateToken = (id) =>
 const generateOtp = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
+const formatUser = (user) => ({
+  id:             user._id,
+  name:         user.name || '',
+  email:        user.email || '',
+  village:      user.village || '',
+  district:     user.district || '',
+  state:        user.state || '',
+  bio:          user.bio || '',
+  profileImage: user.profileImage || '',
+  coverImage:   user.coverImage || '',
+  language:     user.language || 'gu',
+  farmSize:     user.farmSize || '',
+  cropsGrown:   user.cropsGrown || '',
+  experience:   user.experience || '',
+  followersCount: Array.isArray(user.followers) ? user.followers.length : 0,
+  followingCount: Array.isArray(user.following) ? user.following.length : 0,
+  provider:     user.provider || 'local',
+});
+
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 const register = async (req, res) => {
   try {
@@ -41,7 +60,7 @@ const register = async (req, res) => {
       user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
       await user.save();
       
-      await sendEmailOtp(user.email, otp);
+      sendEmailOtp(user.email, otp).catch(e => console.error('Email error:', e.message));
       
       return res.status(201).json({
         success: true,
@@ -68,7 +87,7 @@ const register = async (req, res) => {
       otp: { code: otp, expiresAt: otpExpiry },
     });
 
-    await sendEmailOtp(user.email, otp);
+    sendEmailOtp(user.email, otp).catch(e => console.error('Email error:', e.message));
 
     res.status(201).json({
       success: true,
@@ -109,7 +128,7 @@ const login = async (req, res) => {
       const otp = generateOtp();
       user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
       await user.save();
-      await sendEmailOtp(user.email, otp);
+      sendEmailOtp(user.email, otp).catch(e => console.error('Email error:', e.message));
       
       return res.status(403).json({ 
         success: false, 
@@ -125,14 +144,7 @@ const login = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      user: {
-        id:           user._id,
-        name:         user.name,
-        email:        user.email,
-        village:      user.village,
-        profileImage: user.profileImage,
-        provider:     user.provider,
-      },
+      user: formatUser(user),
     });
   } catch (err) {
     console.error('Login error:', err.message);
@@ -175,17 +187,40 @@ const verifyOtp = async (req, res) => {
       success: true,
       message: 'Verification successful',
       token,
-      user: {
-        id:           user._id,
-        name:         user.name,
-        email:        user.email,
-        village:      user.village,
-        profileImage: user.profileImage,
-        provider:     user.provider,
-      },
+      user: formatUser(user),
     });
   } catch (err) {
     console.error('Verify OTP error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── POST /api/auth/resend-otp ─────────────────────────────────────────────────
+const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const otp = generateOtp();
+    user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
+    await user.save();
+
+    sendEmailOtp(user.email, otp).catch(e => console.error('Email error:', e.message));
+
+    res.json({
+      success: true,
+      message: 'New OTP sent to your email.',
+      ...(process.env.NODE_ENV !== 'production' && { otp }),
+    });
+  } catch (err) {
+    console.error('Resend OTP error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -213,7 +248,7 @@ const forgotPassword = async (req, res) => {
     user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
     await user.save();
 
-    await sendEmailOtp(user.email, otp);
+    sendEmailOtp(user.email, otp).catch(e => console.error('Email error:', e.message));
 
     res.json({
       success: true,
@@ -314,13 +349,7 @@ const googleLogin = async (req, res) => {
       success: true,
       message: 'Google login successful',
       token,
-      user: {
-        id:           user._id,
-        name:         user.name,
-        email:        user.email,
-        profileImage: user.profileImage,
-        provider:     user.provider,
-      },
+      user: formatUser(user),
     });
   } catch (err) {
     console.error('Google login error:', err.message);
@@ -368,13 +397,7 @@ const facebookLogin = async (req, res) => {
       success: true,
       message: 'Facebook login successful',
       token,
-      user: {
-        id:           user._id,
-        name:         user.name,
-        email:        user.email,
-        profileImage: user.profileImage,
-        provider:     user.provider,
-      },
+      user: formatUser(user),
     });
   } catch (err) {
     console.error('Facebook login error:', err.message);
@@ -406,7 +429,7 @@ const requestDeleteOtp = async (req, res) => {
     user.otp = { code: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) };
     await user.save();
 
-    await sendEmailOtp(user.email, otp);
+    sendEmailOtp(user.email, otp).catch(e => console.error('Email error:', e.message));
 
     res.json({
       success: true,
@@ -424,6 +447,7 @@ module.exports = {
   register, 
   login, 
   verifyOtp, 
+  resendOtp,
   forgotPassword, 
   resetPassword, 
   googleLogin, 
