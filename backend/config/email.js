@@ -1,12 +1,15 @@
 const nodemailer = require('nodemailer');
 
 let transporter = null;
-if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+const emailUser = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : '';
+const emailPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '';
+
+if (emailUser && emailPass) {
   transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: emailUser,
+      pass: emailPass,
     },
     connectionTimeout: 5000,
     greetingTimeout: 5000,
